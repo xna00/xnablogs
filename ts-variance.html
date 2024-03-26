@@ -1,0 +1,56 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./github.min.css">
+<title>TypeScript 中不安全的协变</title>
+</head>
+<body><h1>TypeScript 中不安全的协变</h1>
+<p>在有子类型的类型系统中，如果是 mutable 的类型，应该是不变的（invariant），否则就会不安全。
+定义一个 type constructor <code>Ref</code>：</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">type</span> <span class="hljs-title class_">Ref</span>&lt;T&gt; = {
+  <span class="hljs-attr">contents</span>: T;
+};
+<span class="hljs-keyword">const</span> ref = &lt;T&gt;(<span class="hljs-attr">contents</span>: T): <span class="hljs-title class_">Ref</span>&lt;T&gt; =&gt; ({
+  contents,
+});
+</code></pre><p>在 TypeScript 中，如果 <code>A</code> 是 <code>B</code> 的子类型（<code>A &lt;: B</code>），那么 <code>Ref&lt;A&gt;</code> 也是 <code>Ref&lt;B&gt;</code> 的子类型（<code>Ref&lt;A&gt; &lt;: Ref&lt;B&gt;</code>），即 <code>Ref</code> 在 <code>T</code> 上是协变（covariant）的。这很符合直觉，但是不安全，因为 <code>contents</code> 是 mutable 的。</p>
+<h2>Product type</h2>
+<p>定义两个类型 <code>a</code> 和 <code>ab</code>，<code>ab</code> 是 <code>a</code> 的子类型，从而 <code>Ref&lt;ab&gt;</code> 是 <code>Ref&lt;a&gt;</code> 的子类型。</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">type</span> a = { <span class="hljs-attr">a</span>: <span class="hljs-built_in">number</span> };
+<span class="hljs-keyword">type</span> ab = { <span class="hljs-attr">a</span>: <span class="hljs-built_in">number</span>; <span class="hljs-attr">b</span>: <span class="hljs-built_in">number</span> };
+
+<span class="hljs-keyword">const</span> <span class="hljs-attr">ab</span>: <span class="hljs-title class_">Ref</span>&lt;ab&gt; = <span class="hljs-title function_">ref</span>({ <span class="hljs-attr">a</span>: <span class="hljs-number">1</span>, <span class="hljs-attr">b</span>: <span class="hljs-number">1</span> });
+<span class="hljs-keyword">const</span> <span class="hljs-attr">a</span>: <span class="hljs-title class_">Ref</span>&lt;a&gt; = ab;
+a.<span class="hljs-property">contents</span> = { <span class="hljs-attr">a</span>: <span class="hljs-number">1</span> };
+ab.<span class="hljs-property">contents</span>.<span class="hljs-property">b</span>;
+</code></pre><p>这段代码在 TS 中没有类型错误，<code>ab.contents.b</code> 被推断出的类型是 <code>number</code>，但在运行时的值是 <code>undefined</code> 。</p>
+<h2>Sum type</h2>
+<p>Sum type 和 Product type 是对偶的，所以在 Sum type 中也会有同样的问题。</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">type</span> A = <span class="hljs-string">&quot;A&quot;</span>;
+<span class="hljs-keyword">type</span> <span class="hljs-variable constant_">AB</span> = <span class="hljs-string">&quot;A&quot;</span> | <span class="hljs-string">&quot;B&quot;</span>;
+
+<span class="hljs-keyword">const</span> <span class="hljs-attr">A</span>: <span class="hljs-title class_">Ref</span>&lt;A&gt; = <span class="hljs-title function_">ref</span>(<span class="hljs-string">&quot;A&quot;</span>);
+<span class="hljs-keyword">const</span> <span class="hljs-title function_">matchA</span> = (<span class="hljs-params">A: Ref&lt;A&gt;</span>) =&gt; {
+  <span class="hljs-keyword">switch</span> (A.<span class="hljs-property">contents</span>) {
+    <span class="hljs-keyword">case</span> <span class="hljs-string">&quot;A&quot;</span>:
+      <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+  }
+};
+<span class="hljs-keyword">const</span> <span class="hljs-attr">AB</span>: <span class="hljs-title class_">Ref</span>&lt;<span class="hljs-variable constant_">AB</span>&gt; = A;
+<span class="hljs-variable constant_">AB</span>.<span class="hljs-property">contents</span> = <span class="hljs-string">&quot;B&quot;</span>;
+<span class="hljs-title function_">matchA</span>(A);
+</code></pre><p><code>matchA(A)</code> 被推断出的类型是 <code>number</code>，但在运行时的值是 <code>undefined</code> 。</p>
+<h2>总结</h2>
+<p>如果把 <code>Ref</code> 定义为 immutable 的</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">type</span> <span class="hljs-title class_">Ref</span>&lt;T&gt; = {
+  <span class="hljs-keyword">readonly</span> <span class="hljs-attr">contents</span>: T;
+};
+</code></pre><p>这样在 <code>a.contents = { a: 1 }</code> 和 <code>AB.contents = &quot;B&quot;</code> 时会有类型错误，就能避免这个问题。</p>
+<p><a href="https://www.typescriptlang.org/play?#code/C4TwDgpgBAShBmAeAKgPigXigbwFBSgGMB7AO2AnIGcAuKZAblwF8ncTSrgoAnBTKCgA0qABQcK1OsgCUdOEjSZ0ovAQmVgVISxltQkKAEMB2Y3VIBXALYAjCDyitcB6EdunzUK3YcMothY29o7O7GRcxoGwCIju6Fh88KpeAIxCAXSpTnrhnNxG8rFGCVFMRgB0GtSehVDZzhyRwNlY7lVkkloVtkxNxAA2EBUDxADmoi25LuDQAIICAORzi0yuUHMAQksrUAA+UIubq7h5kXNFSHOlSaLLi7lN3NZGwIQAFgtYohcxV6gyZQ4fBQKgAdwAlm93lAfh1yJoqIC1AQiEYqNB7jQQajeBBgJYeKQoAAGJgEZgsPoRbhbS6ILalOZMLbwrpUJbHan5KDAABMAhe0LmP0eEUGw1GE35eiAA">完整代码</a></p>
+</body>
+</html>
+          

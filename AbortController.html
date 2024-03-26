@@ -1,0 +1,47 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./github.min.css">
+<title>使用 AbortController</title>
+</head>
+<body><h1>使用 AbortController</h1>
+<h2>清理 EventListener</h2>
+<h3>类型推测</h3>
+<p>如果用 <code>removeEventListener</code></p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">const</span> <span class="hljs-title function_">h</span> = (<span class="hljs-params">e: MouseEvent</span>) =&gt; {
+  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(e);
+};
+<span class="hljs-variable language_">window</span>.<span class="hljs-title function_">addEventListener</span>(<span class="hljs-string">&quot;click&quot;</span>, h);
+<span class="hljs-variable language_">window</span>.<span class="hljs-title function_">removeEventListener</span>(<span class="hljs-string">&quot;click&quot;</span>, h);
+</code></pre><p>TypeScript 不能自动推断出 <code>e</code> 的类型，必须手动标注。
+这时可以用 <code>AbortController</code></p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">const</span> controller = <span class="hljs-keyword">new</span> <span class="hljs-title class_">AbortController</span>();
+<span class="hljs-variable language_">window</span>.<span class="hljs-title function_">addEventListener</span>(
+  <span class="hljs-string">&quot;click&quot;</span>,
+  <span class="hljs-function">(<span class="hljs-params">e</span>) =&gt;</span> {
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(e);
+  },
+  { <span class="hljs-attr">signal</span>: controller.<span class="hljs-property">signal</span> }
+);
+controller.<span class="hljs-title function_">abort</span>();
+</code></pre><h3>清理多个 listener</h3>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">const</span> controller = <span class="hljs-keyword">new</span> <span class="hljs-title class_">AbortController</span>();
+<span class="hljs-variable language_">window</span>.<span class="hljs-title function_">addEventListener</span>(<span class="hljs-string">&quot;click&quot;</span>, listener1, { <span class="hljs-attr">signal</span>: controller.<span class="hljs-property">signal</span> });
+<span class="hljs-variable language_">window</span>.<span class="hljs-title function_">addEventListener</span>(<span class="hljs-string">&quot;resize&quot;</span>, listener2, { <span class="hljs-attr">signal</span>: controller.<span class="hljs-property">signal</span> });
+controller.<span class="hljs-title function_">abort</span>();
+</code></pre><h2>取消请求</h2>
+<pre><code class="hljs language-ts"><span class="hljs-title function_">useEffect</span>(<span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">const</span> controller = <span class="hljs-keyword">new</span> <span class="hljs-title class_">AbortController</span>();
+  <span class="hljs-title function_">fetch</span>(<span class="hljs-string">&quot;url&quot;</span>, { <span class="hljs-attr">signal</span>: controller.<span class="hljs-property">signal</span> });
+
+  <span class="hljs-keyword">return</span> <span class="hljs-function">() =&gt;</span> {
+    controller.<span class="hljs-title function_">abort</span>();
+  };
+}, []);
+</code></pre></body>
+</html>
+          

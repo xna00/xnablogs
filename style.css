@@ -1,0 +1,8 @@
+@font-face {
+  font-family: "Menlo";
+  src: url("./Menlo-Regular.ttf");
+}
+
+code {
+  font-family: Menlo;
+}

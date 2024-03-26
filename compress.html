@@ -1,0 +1,28 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./github.min.css">
+<title>在浏览器中使用 Compression Streams API 压缩文件</title>
+</head>
+<body><h1>在浏览器中使用 Compression Streams API 压缩文件</h1>
+<p>Compression Streams API 是浏览器内置的 API，可使用 gzip 或 deflate（或 deflate-raw）格式压缩和解压缩数据流，所有浏览器都支持。</p>
+<p><a href="https://codesandbox.io/p/sandbox/gzip-demo-yn7nfk?file=%2Findex.html">CodeSandbox demo</a></p>
+<h2>压缩</h2>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">const</span> stream = file.<span class="hljs-title function_">stream</span>().<span class="hljs-title function_">pipeThrough</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">CompressionStream</span>(<span class="hljs-string">&quot;gzip&quot;</span>));
+<span class="hljs-keyword">new</span> <span class="hljs-title class_">Response</span>(stream).<span class="hljs-title function_">blob</span>().<span class="hljs-title function_">then</span>(<span class="hljs-function">(<span class="hljs-params">blob</span>) =&gt;</span> {
+  <span class="hljs-keyword">const</span> newFile = <span class="hljs-keyword">new</span> <span class="hljs-title class_">File</span>([blob], file.<span class="hljs-property">name</span> + <span class="hljs-string">&quot;.gz&quot;</span>, {
+    <span class="hljs-attr">type</span>: <span class="hljs-string">&quot;application/gzip&quot;</span>,
+  });
+});
+</code></pre><h2>解压</h2>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">const</span> stream = file.<span class="hljs-title function_">stream</span>().<span class="hljs-title function_">pipeThrough</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">DecompressionStream</span>(<span class="hljs-string">&quot;gzip&quot;</span>));
+<span class="hljs-keyword">new</span> <span class="hljs-title class_">Response</span>(stream).<span class="hljs-title function_">blob</span>().<span class="hljs-title function_">then</span>(<span class="hljs-function">(<span class="hljs-params">blob</span>) =&gt;</span> {
+  <span class="hljs-keyword">const</span> newFile = <span class="hljs-keyword">new</span> <span class="hljs-title class_">File</span>([blob], file.<span class="hljs-property">name</span>.<span class="hljs-title function_">replace</span>(<span class="hljs-string">&quot;.gz&quot;</span>, <span class="hljs-string">&quot;&quot;</span>));
+});
+</code></pre></body>
+</html>
+          
