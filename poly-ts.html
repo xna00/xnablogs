@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./github.min.css">
+<title>TypeScript 中的多态</title>
+</head>
+<body><h1>TypeScript 中的多态</h1>
+<h2>什么是多态</h2>
+<p>多态(Polymorphism)是指一段程序在不同的上下文中可以被用于不同的类型。</p>
+<h2>Parametric polymorphism</h2>
+<p>Parametric polymorphism 允许一段代码拥有一个通用的类型，使用变量代替实际的类型，再根据需要将其实例化为具体的类型。所有实例的行为都相同。</p>
+<p>在 Symtem F 中</p>
+<pre><code class="hljs language-plaintext">id = λX. λx:X. x;
+intId = id[Int]
+pair = (id[Int] 1, id[Bool] true)
+mapPair = λf: (∀X.X-&gt;X). (f[Int] 1, f[Bool] true)
+</code></pre><p>First-class polymorphism 是指可以将多态函数作为普通的值使用，例如作为函数的参数（mapPair 中的 f）、返回值。</p>
+<p>在 TypeScript 中</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">let</span> id = &lt;T&gt;<span class="hljs-function">(<span class="hljs-params">x: T</span>) =&gt;</span> x
+<span class="hljs-keyword">let</span> intId = id&lt;<span class="hljs-built_in">number</span>&gt;
+<span class="hljs-keyword">let</span> pair = [id&lt;<span class="hljs-built_in">number</span>&gt;(<span class="hljs-number">1</span>), id&lt;<span class="hljs-built_in">boolean</span>&gt;(<span class="hljs-literal">true</span>)]
+<span class="hljs-keyword">let</span> <span class="hljs-title function_">mapPair</span> = (<span class="hljs-params">f: &lt;X&gt;(x: X) =&gt; X</span>) =&gt; [f&lt;<span class="hljs-built_in">number</span>&gt;(<span class="hljs-number">1</span>), f&lt;<span class="hljs-built_in">boolean</span>&gt;(<span class="hljs-literal">true</span>)]
+</code></pre><h2>Ad-hoc polymorphism</h2>
+<p>Ad-hoc polymorphism 中，一个多态的值被看做不同类型时，允许有不同的行为。例如 Java 中的 overloading 和 Haskell 中的 typeclass。
+在 TypeScript 中需要借助动态类型实现 Ad-hoc polymorphism。</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">let</span> numberToNumber = (<span class="hljs-attr">x</span>: <span class="hljs-built_in">number</span>): <span class="hljs-function"><span class="hljs-params">number</span> =&gt;</span> x
+<span class="hljs-keyword">let</span> booleanToNumber = (<span class="hljs-attr">x</span>: <span class="hljs-built_in">boolean</span>): <span class="hljs-function"><span class="hljs-params">number</span> =&gt;</span> x ? <span class="hljs-number">1</span> : <span class="hljs-number">0</span>
+
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">toNumber</span>(<span class="hljs-params">x: <span class="hljs-built_in">number</span></span>): <span class="hljs-built_in">number</span>
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">toNumber</span>(<span class="hljs-params">x: <span class="hljs-built_in">boolean</span></span>): <span class="hljs-built_in">number</span>
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">toNumber</span>(<span class="hljs-params">x: <span class="hljs-built_in">number</span> | <span class="hljs-built_in">boolean</span></span>): <span class="hljs-built_in">number</span> {
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> x === <span class="hljs-string">&#x27;number&#x27;</span>) <span class="hljs-keyword">return</span> <span class="hljs-title function_">numberToNumber</span>(x)
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> <span class="hljs-title function_">booleanToNumber</span>(x)
+}
+</code></pre><h2>Subtype polymorphism</h2>
+<p>TS 中的 Top 和 Bottom 分别是 unknown 和 never。</p>
+<p>子类型关系</p>
+<ol>
+<li>S &lt;: S 自反性，一个类型时他自己的子类型</li>
+<li>S &lt;: U and U &lt;: T -&gt; S &lt;: T 传递性</li>
+<li>{ l1: T1; ... ln: Tn } &lt;: { l1: T1; ... lm: Tm } n &gt;= m 一个对象类型的属性包含了另一个对象类型的属性，且对应的属性类型相同，这个对象类型是另一个对象类型的子类型</li>
+<li>foreach i Si &lt;: Ti -&gt; { l1: S1; ... ln: Sn } &lt;: { l1: T1; ... ln: Tn } 一个对象类型的属性和另一个对象类型的属性相同，且对应的属性类型是子类型，这个对象类型是另一个对象类型的子类型</li>
+<li>never &lt;: T</li>
+<li>S &lt;: unkonwn</li>
+<li>T1 &lt;: S1 and S2 &lt;: T2 -&gt; (S1 =&gt; S2) &lt;: (T1 =&gt; T2) 函数参数的逆变</li>
+</ol>
+<p>TS 的类型系统很复杂，子类型关系不止这些。</p>
+<p>if t: S and S &lt;: T then t: T .</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">let</span> ab = {<span class="hljs-attr">a</span>: <span class="hljs-number">1</span>, <span class="hljs-attr">b</span>: <span class="hljs-number">2</span>}
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">getA</span>(<span class="hljs-params">o: {a: <span class="hljs-built_in">number</span>}</span>) {
+    <span class="hljs-keyword">return</span> o.<span class="hljs-property">a</span>
+}
+<span class="hljs-keyword">let</span> a = <span class="hljs-title function_">getA</span>(ab)
+</code></pre><h2>参考</h2>
+<ol>
+<li>Types and Programming Languages</li>
+<li><a href="http://mlton.org/FirstClassPolymorphism">http://mlton.org/FirstClassPolymorphism</a></li>
+</ol>
+</body>
+</html>
+          
