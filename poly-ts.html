@@ -40,7 +40,7 @@ mapPair = λf: (∀X.X-&gt;X). (f[Int] 1, f[Bool] true)
 <p>TS 中的 Top 和 Bottom 分别是 unknown 和 never。</p>
 <p>子类型关系</p>
 <ol>
-<li>S &lt;: S 自反性，一个类型时他自己的子类型</li>
+<li>S &lt;: S 自反性，一个类型是他自己的子类型</li>
 <li>S &lt;: U and U &lt;: T -&gt; S &lt;: T 传递性</li>
 <li>{ l1: T1; ... ln: Tn } &lt;: { l1: T1; ... lm: Tm } n &gt;= m 一个对象类型的属性包含了另一个对象类型的属性，且对应的属性类型相同，这个对象类型是另一个对象类型的子类型</li>
 <li>foreach i Si &lt;: Ti -&gt; { l1: S1; ... ln: Sn } &lt;: { l1: T1; ... ln: Tn } 一个对象类型的属性和另一个对象类型的属性相同，且对应的属性类型是子类型，这个对象类型是另一个对象类型的子类型</li>
