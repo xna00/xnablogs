@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./github.min.css">
+<title>JavaScript 中的动态作用域</title>
+</head>
+<body><h1>JavaScript 中的动态作用域</h1>
+<p>JavaScript 是静态作用域的，引用的变量是在编译时确定的，但是有两个例外 <code>this</code> 和 <code>with</code>。</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">let</span> a = <span class="hljs-number">0</span>
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">f</span>(<span class="hljs-params"></span>) {
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(a)
+}
+<span class="hljs-title function_">f</span>()
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">g</span>(<span class="hljs-params"></span>) {
+    <span class="hljs-keyword">let</span> a = <span class="hljs-number">1</span>
+    <span class="hljs-title function_">f</span>()
+}
+<span class="hljs-title function_">g</span>()
+</code></pre><p>调用 <code>f</code> 和 <code>g</code> 打印的都是 0。</p>
+<h2>this</h2>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">function</span> <span class="hljs-title function_">h</span> () {
+    <span class="hljs-variable language_">this</span>
+}
+</code></pre><p><code>h</code> 中的 <code>this</code> 是什么？要在运行时确定，和具体的表达式有关。</p>
+<h2>with</h2>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">function</span> <span class="hljs-title function_">f</span>(<span class="hljs-params">x, o</span>) {
+  <span class="hljs-keyword">with</span> (o) {
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(x);
+  }
+}
+</code></pre><p><code>with</code> 相当于在 <code>f</code> 捕获的 env 前面插入一项。</p>
+</body>
+</html>
+          
