@@ -23,7 +23,7 @@ yarn gulp vscode-web-min
 <p><code>WORKBENCH_WEB_CONFIGURATION</code> -&gt; <code>{}</code></p>
 <p>删除 <code>WORKBENCH_AUTH_SESSION</code></p>
 <p>在项目根目录下开启 HTTP 服务器 <code>http-server .</code></p>
-<p>打开 <a href="http://localhost:8080/">http://localhost:8080/</a></p>
+<p>打开 <a href="http://localhost:8080/">http://localhost:8080/</a> 测试</p>
 <h2>部署到 Github Pages</h2>
 <p>VSCode Web 需要的目录</p>
 <ul>
@@ -51,16 +51,18 @@ yarn gulp vscode-web-min
 </code></pre><h4>开启部分插件</h4>
 <p>在 index.html 中配置 additionalBuiltinExtensions，并把对应的目录复制到 dist 中</p>
 <pre><code class="hljs language-js"><span class="hljs-keyword">const</span> configuration = <span class="hljs-variable language_">document</span>.<span class="hljs-title function_">getElementById</span>(<span class="hljs-string">&quot;vscode-workbench-web-configuration&quot;</span>)
-        configuration.<span class="hljs-property">dataset</span>.<span class="hljs-property">settings</span> = <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>({
-            <span class="hljs-string">&quot;additionalBuiltinExtensions&quot;</span>: [{
-                <span class="hljs-string">&quot;scheme&quot;</span>: location.<span class="hljs-property">protocol</span>.<span class="hljs-title function_">replace</span>(<span class="hljs-string">&#x27;:&#x27;</span>, <span class="hljs-string">&#x27;&#x27;</span>),
-                <span class="hljs-string">&quot;authority&quot;</span>: location.<span class="hljs-property">host</span>,
-                <span class="hljs-string">&quot;path&quot;</span>: <span class="hljs-string">&quot;/{baseUrl}/extensions/theme-defaults&quot;</span>
-            }],
-        })
-</code></pre><p>如果有 Proposal API 问题</p>
+configuration.<span class="hljs-property">dataset</span>.<span class="hljs-property">settings</span> = <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>({
+    <span class="hljs-string">&quot;additionalBuiltinExtensions&quot;</span>: [{
+        <span class="hljs-string">&quot;scheme&quot;</span>: location.<span class="hljs-property">protocol</span>.<span class="hljs-title function_">replace</span>(<span class="hljs-string">&#x27;:&#x27;</span>, <span class="hljs-string">&#x27;&#x27;</span>),
+        <span class="hljs-string">&quot;authority&quot;</span>: location.<span class="hljs-property">host</span>,
+        <span class="hljs-string">&quot;path&quot;</span>: <span class="hljs-string">&quot;/{baseUrl}/extensions/theme-defaults&quot;</span>
+    }],
+})
+</code></pre><p>configuration 参考 src/vs/workbench/browser/web.api.ts <code>IWorkbenchConstructionOptions</code></p>
+<p>如果有 Proposal API 问题，把需要的 Proposal API 添加到配置中。 </p>
 <pre><code class="hljs language-js"><span class="hljs-attr">productConfiguration</span>: {
     <span class="hljs-attr">extensionEnabledApiProposals</span>: {
+        <span class="hljs-attr">extensionId</span>: []
     }
 }
 </code></pre></body>
