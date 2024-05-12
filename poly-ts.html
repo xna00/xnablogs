@@ -47,8 +47,8 @@ mapPair = λf: (∀X.X-&gt;X). (f[Int] 1, f[Bool] true)
 <li>never &lt;: T</li>
 <li>S &lt;: unkonwn</li>
 <li>T1 &lt;: S1 and S2 &lt;: T2 -&gt; (S1 =&gt; S2) &lt;: (T1 =&gt; T2) 函数参数的逆变</li>
+<li>...</li>
 </ol>
-<p>TS 的类型系统很复杂，子类型关系不止这些。</p>
 <p>if t: S and S &lt;: T then t: T .</p>
 <pre><code class="hljs language-ts"><span class="hljs-keyword">let</span> ab = {<span class="hljs-attr">a</span>: <span class="hljs-number">1</span>, <span class="hljs-attr">b</span>: <span class="hljs-number">2</span>}
 <span class="hljs-keyword">function</span> <span class="hljs-title function_">getA</span>(<span class="hljs-params">o: {a: <span class="hljs-built_in">number</span>}</span>) {

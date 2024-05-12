@@ -34,7 +34,7 @@ yarn gulp vscode-web-min
 </ul>
 <p>这些文件太多，上传到 Pages 会失败</p>
 <h3>挑选 node_modules 文件</h3>
-<pre><code class="hljs language-js"><span class="hljs-comment">// moduels 在 out-vscode-web-min/vs/webPackagePaths.js 中</span>
+<pre><code class="hljs language-js"><span class="hljs-comment">// modules 在 out-vscode-web-min/vs/webPackagePaths.js 中</span>
 <span class="hljs-title class_">Object</span>.<span class="hljs-title function_">entries</span>(modules).<span class="hljs-title function_">forEach</span>(<span class="hljs-function">(<span class="hljs-params">[k, v]</span>) =&gt;</span> {
     <span class="hljs-keyword">const</span> src = <span class="hljs-string">`./vscode/node_modules/<span class="hljs-subst">${k}</span>/<span class="hljs-subst">${v}</span>`</span>
     <span class="hljs-keyword">const</span> dest = <span class="hljs-string">`./dist/node_modules/<span class="hljs-subst">${k}</span>/<span class="hljs-subst">${v}</span>`</span>
