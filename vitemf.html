@@ -1,0 +1,82 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./github.min.css">
+<title>在Vite中使用简易的Module Federation</title>
+</head>
+<body><h1>在Vite中使用简易的Module Federation</h1>
+<p>Module Federation 本质上是多个 App 之间共享代码和资源，由 Webpack5 引入。</p>
+<p>本文介绍一种在Vite中使用Module Federation的方案。<a href="https://stackblitz.com/github/xna00/vite-module-federation/tree/demo?file=package.json&startScript=build,preview">StackBlitz</a></p>
+<p>假设有两个应用app1和app2，app1会使用 app2中的Counter组件，app2会使用app1中的Card组件。</p>
+<h2>代码拆分</h2>
+<p>要导出一个模块，首先要把它拆分出来。代码拆分最简单的方法是使用import()异步加载，rollup会自动将异步模块单独打包到一个chunk中。</p>
+<p>创建一个文件 <code>expose.ts</code></p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> <span class="hljs-title function_">Counter</span> = (<span class="hljs-params"></span>) =&gt; <span class="hljs-keyword">import</span>(<span class="hljs-string">&#x27;./src/Counter&#x27;</span>)
+</code></pre><p>使用Vite的 lib 模式，把index.html和expose.ts都配置为入口。这样就可以把Counter单独build到一个chunk中。但是Counter中有很多无关的代码，因为Counter中引用了react和react/jsx-runtime。</p>
+<p>可以把这些依赖配置为 external</p>
+<pre><code class="hljs language-ts"><span class="hljs-attr">external</span>: [<span class="hljs-string">&#x27;react&#x27;</span>, <span class="hljs-string">&#x27;react-dom&#x27;</span>, <span class="hljs-string">&#x27;react/jsx-runtime&#x27;</span>],
+</code></pre><p>配置之后build的结果</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">import</span> { jsxs <span class="hljs-keyword">as</span> r } <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;react/jsx-runtime&quot;</span>;
+<span class="hljs-keyword">import</span> { useState <span class="hljs-keyword">as</span> e } <span class="hljs-keyword">from</span> <span class="hljs-string">&quot;react&quot;</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-title function_">c</span> = (<span class="hljs-params"></span>) =&gt; {
+  <span class="hljs-keyword">const</span> [t, o] = <span class="hljs-title function_">e</span>(<span class="hljs-number">0</span>);
+  <span class="hljs-keyword">return</span> <span class="hljs-comment">/* @
+__PURE__
+ */</span> <span class="hljs-title function_">r</span>(<span class="hljs-string">&quot;button&quot;</span>, { <span class="hljs-attr">onClick</span>: <span class="hljs-function">() =&gt;</span> <span class="hljs-title function_">o</span>(<span class="hljs-function">(<span class="hljs-params">n</span>) =&gt;</span> n + <span class="hljs-number">1</span>), <span class="hljs-attr">children</span>: [
+    <span class="hljs-string">&quot;App2 count is &quot;</span>,
+    t
+  ] });
+};
+<span class="hljs-keyword">export</span> {
+  c <span class="hljs-keyword">as</span> <span class="hljs-keyword">default</span>
+};
+</code></pre><p>在其它应用里就可以远程加载Counter模块</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">const</span> <span class="hljs-title class_">Counter</span> = <span class="hljs-title function_">lazy</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-keyword">import</span>(<span class="hljs-string">&#x27;http://app2/expose.js&#x27;</span>).<span class="hljs-title function_">then</span>(<span class="hljs-function"><span class="hljs-params">res</span> =&gt;</span> res.<span class="hljs-title class_">Counter</span>()))
+</code></pre><h2>共享依赖</h2>
+<p>上面 build 出的 Counter，引用了 react和react/jsx-runtime，可以通过importmap指定依赖的地址，也可以用更简单的方法，把这些依赖挂载到window上，然后把所有的 import statement 转换为 pattern matching。</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">if</span> (node.<span class="hljs-property">type</span> === <span class="hljs-string">&#x27;ImportDeclaration&#x27;</span> &amp;&amp; shared.<span class="hljs-title function_">includes</span>(node.<span class="hljs-property">source</span>.<span class="hljs-property">value</span>?.<span class="hljs-title function_">toString</span>() ?? <span class="hljs-string">&#x27;&#x27;</span>)) {
+  dirty = <span class="hljs-literal">true</span>;
+  <span class="hljs-keyword">const</span> source = <span class="hljs-string">`window.__shared_modules__[<span class="hljs-subst">${node.source.raw}</span>]`</span>;
+
+  <span class="hljs-keyword">const</span> newImport = node.<span class="hljs-property">specifiers</span>
+    .<span class="hljs-title function_">map</span>(<span class="hljs-function"><span class="hljs-params">specifier</span> =&gt;</span> {
+      <span class="hljs-keyword">if</span> (specifier.<span class="hljs-property">type</span> === <span class="hljs-string">&#x27;ImportDefaultSpecifier&#x27;</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-string">`const { default: <span class="hljs-subst">${specifier.local.name}</span>} = <span class="hljs-subst">${source}</span>;`</span>;
+      } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (specifier.<span class="hljs-property">type</span> === <span class="hljs-string">&#x27;ImportSpecifier&#x27;</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-string">`const { <span class="hljs-subst">${specifier.imported.name}</span>: <span class="hljs-subst">${specifier.local.name}</span>} = <span class="hljs-subst">${source}</span>;`</span>;
+      } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (specifier.<span class="hljs-property">type</span> === <span class="hljs-string">&#x27;ImportNamespaceSpecifier&#x27;</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-string">`const <span class="hljs-subst">${specifier.local.name}</span> = <span class="hljs-subst">${source}</span>;`</span>;
+      } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Error</span>(<span class="hljs-string">&#x27;unknown import specifier&#x27;</span>);
+      }
+    })
+    .<span class="hljs-title function_">join</span>(<span class="hljs-string">&#x27;\n&#x27;</span>);
+  magic.<span class="hljs-title function_">overwrite</span>(node.<span class="hljs-property">start</span>, node.<span class="hljs-property">end</span>, newImport);
+}
+</code></pre><h2>Import</h2>
+<p>如果要导入远程JS模块，不需要直接写URL，可以自动转换</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">if</span> (node.<span class="hljs-property">type</span> === <span class="hljs-string">&#x27;ImportExpression&#x27;</span> &amp;&amp; <span class="hljs-title class_">Object</span>.<span class="hljs-title function_">keys</span>(remoteEntries).<span class="hljs-title function_">includes</span>(node.<span class="hljs-property">source</span>.<span class="hljs-property">value</span>)) {
+  magic.<span class="hljs-title function_">overwrite</span>(node.<span class="hljs-property">start</span>, node.<span class="hljs-property">end</span>, <span class="hljs-string">`import(/* @vite-ignore */ window.__remote_modules__[<span class="hljs-subst">${node.source.raw}</span>])`</span>);
+}
+</code></pre><h2>HTTP缓存</h2>
+<p>就像html入口文件不能缓存一样，remoteEntry也不能缓存。要加上响应头Cache: no-cache或者在 URL加一个随机数</p>
+<h2>类型检查</h2>
+<p>为了更好的开发体验，我们需要类型。</p>
+<pre><code class="hljs language-shell">tsc &amp;&amp; vite build &amp;&amp; npm pack &amp;&amp; mv app2-0.0.0.tgz dist/types.tgz
+</code></pre><p>在build时，把类型也build出来，打一个npm包</p>
+<h2>其它工作</h2>
+<ul>
+<li>版本控制</li>
+<li>CSS</li>
+<li>开发环境中的配置</li>
+</ul>
+<h2>总结</h2>
+<p>本文介绍的并非通用方案，只是一个简易方案，可以低成本地实现。
+<a href="https://github.com/xna00/vite-module-federation">代码链接</a>。</p>
+</body>
+</html>
+          
