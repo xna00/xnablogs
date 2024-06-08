@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./github.min.css">
+<title>Auto upgrade a command line app</title>
+</head>
+<body><h1>Auto upgrade a command line app</h1>
+<h2>Generate a version</h2>
+<p>We need to get a version to check if there is a newer version. One way is to change version manaually. Another way is generate a hash of all files.</p>
+<pre><code class="hljs language-shell">hash=$(md5sum $(find dist -type f) | cut -d&#x27; &#x27; -f1 | sort | md5sum | cut -d&#x27; &#x27; -f1)
+</code></pre><p><code>dist</code> is the output directory.
+We need to patch the hash value to the source code before build a binary.</p>
+<h2>Check and download</h2>
+<pre><code class="hljs language-js"><span class="hljs-keyword">const</span> version = (
+  <span class="hljs-keyword">await</span> (<span class="hljs-keyword">await</span> <span class="hljs-title function_">fetch</span>(<span class="hljs-string">`<span class="hljs-subst">${HOST}</span>/version`</span>)).<span class="hljs-title function_">text</span>()
+).<span class="hljs-title function_">trim</span>();
+<span class="hljs-keyword">if</span> (version !== currentVersion) {
+  <span class="hljs-comment">// download latest file</span>
+}
+<span class="hljs-comment">// write to a new file</span>
+<span class="hljs-title function_">writeFileSync</span>(exeFilePath + <span class="hljs-string">&quot;.latest&quot;</span>, buffer);
+</code></pre><h2>Upgrade and reload app</h2>
+<pre><code class="hljs language-js"><span class="hljs-keyword">if</span> (<span class="hljs-title function_">platform</span>() === <span class="hljs-string">&quot;darwin&quot;</span>) {
+  <span class="hljs-title function_">exec</span>(
+    <span class="hljs-string">`
+  osascript -e &#x27;tell app &quot;Terminal&quot;
+  do script &quot;sleep 10 &amp;&amp; cd ~ &amp;&amp; mv <span class="hljs-subst">${exeFilePath}</span>.latest <span class="hljs-subst">${exeFilePath}</span> &amp;&amp; chmod +x <span class="hljs-subst">${exeFilePath}</span> &amp;&amp; <span class="hljs-subst">${exeFilePath}</span>&quot;
+  end tell&#x27;
+  `</span>,
+  );
+} <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-title function_">platform</span>() === <span class="hljs-string">&quot;win32&quot;</span>) {
+  <span class="hljs-title function_">exec</span>(
+    <span class="hljs-string">`
+  start cmd.exe /k &quot;timeout 10 &amp;&amp; move <span class="hljs-subst">${exeFilePath}</span>.latest <span class="hljs-subst">${exeFilePath}</span> &amp;&amp; <span class="hljs-subst">${exeFilePath}</span>&quot;
+  `</span>.<span class="hljs-title function_">trim</span>(),
+  );
+}
+</code></pre></body>
+</html>
+          
