@@ -6,39 +6,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" href="./style.css">
 <link rel="stylesheet" href="./github.min.css">
-<title>Auto upgrade a command line app</title>
+<title>Automate Command-Line Application Upgrades</title>
 </head>
-<body><h1>Auto upgrade a command line app</h1>
-<h2>Generate a version</h2>
-<p>We need to get a version to check if there is a newer version. One way is to change version manaually. Another way is generate a hash of all files.</p>
-<pre><code class="hljs language-shell">hash=$(md5sum $(find dist -type f) | cut -d&#x27; &#x27; -f1 | sort | md5sum | cut -d&#x27; &#x27; -f1)
-</code></pre><p><code>dist</code> is the output directory.
-We need to patch the hash value to the source code before build a binary.</p>
-<h2>Check and download</h2>
+<body><h1>Automate Command-Line Application Upgrades</h1>
+<h2>Generate a Version Number</h2>
+<p>To ensure we can detect new versions of our application, we need a reliable version number. This can be achieved in two ways:</p>
+<ol>
+<li><strong>Manually Change the Version Number:</strong> Update it manually with each new release.</li>
+<li><strong>Automatically Generate a Hash:</strong> Create a version number by hashing the application&#39;s files. Here&#39;s an example script to generate the hash:</li>
+</ol>
+<pre><code class="hljs language-bash"><span class="hljs-built_in">hash</span>=$(<span class="hljs-built_in">md5sum</span> $(find dist -<span class="hljs-built_in">type</span> f) | <span class="hljs-built_in">sort</span> -k 1,1 | <span class="hljs-built_in">md5sum</span> | <span class="hljs-built_in">cut</span> -d<span class="hljs-string">&#x27; &#x27;</span> -f1)
+</code></pre><p>In this script, <code>dist</code> is the output directory of the application. Before building the binary, the generated hash needs to be embedded into the source code.</p>
+<h2>Check and Download the Latest Version</h2>
+<p>Within the application, we can check for the latest version and download it using the following JavaScript code:</p>
 <pre><code class="hljs language-js"><span class="hljs-keyword">const</span> version = (
   <span class="hljs-keyword">await</span> (<span class="hljs-keyword">await</span> <span class="hljs-title function_">fetch</span>(<span class="hljs-string">`<span class="hljs-subst">${HOST}</span>/version`</span>)).<span class="hljs-title function_">text</span>()
 ).<span class="hljs-title function_">trim</span>();
+
 <span class="hljs-keyword">if</span> (version !== currentVersion) {
-  <span class="hljs-comment">// download latest file</span>
+  <span class="hljs-comment">// Download the latest file</span>
 }
-<span class="hljs-comment">// write to a new file</span>
-<span class="hljs-title function_">writeFileSync</span>(exeFilePath + <span class="hljs-string">&quot;.latest&quot;</span>, buffer);
-</code></pre><h2>Upgrade and reload app</h2>
+</code></pre><h2>Write to a New File</h2>
+<p>After downloading, write the new version to a new file:</p>
+<pre><code class="hljs language-js">fs.<span class="hljs-title function_">writeFileSync</span>(exeFilePath + <span class="hljs-string">&quot;.latest&quot;</span>, buffer);
+</code></pre><h2>Upgrade and Reload the Application</h2>
+<p>Execute different upgrade and restart commands based on the operating system. Here are example scripts for MacOS and Windows:</p>
+<h3>MacOS</h3>
 <pre><code class="hljs language-js"><span class="hljs-keyword">if</span> (<span class="hljs-title function_">platform</span>() === <span class="hljs-string">&quot;darwin&quot;</span>) {
-  <span class="hljs-title function_">exec</span>(
-    <span class="hljs-string">`
-  osascript -e &#x27;tell app &quot;Terminal&quot;
-  do script &quot;sleep 10 &amp;&amp; cd ~ &amp;&amp; mv <span class="hljs-subst">${exeFilePath}</span>.latest <span class="hljs-subst">${exeFilePath}</span> &amp;&amp; chmod +x <span class="hljs-subst">${exeFilePath}</span> &amp;&amp; <span class="hljs-subst">${exeFilePath}</span>&quot;
-  end tell&#x27;
-  `</span>,
-  );
-} <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-title function_">platform</span>() === <span class="hljs-string">&quot;win32&quot;</span>) {
-  <span class="hljs-title function_">exec</span>(
-    <span class="hljs-string">`
-  start cmd.exe /k &quot;timeout 10 &amp;&amp; move <span class="hljs-subst">${exeFilePath}</span>.latest <span class="hljs-subst">${exeFilePath}</span> &amp;&amp; <span class="hljs-subst">${exeFilePath}</span>&quot;
-  `</span>.<span class="hljs-title function_">trim</span>(),
-  );
+  <span class="hljs-title function_">exec</span>(<span class="hljs-string">`
+    osascript -e &#x27;tell app &quot;Terminal&quot;
+    do script &quot;sleep 10 &amp;&amp; cd ~ &amp;&amp; mv <span class="hljs-subst">${exeFilePath}</span>.latest <span class="hljs-subst">${exeFilePath}</span> &amp;&amp; chmod +x <span class="hljs-subst">${exeFilePath}</span> &amp;&amp; open -a <span class="hljs-subst">${exeFilePath}</span>&quot;
+    end tell&#x27;
+  `</span>);
 }
-</code></pre></body>
+</code></pre><h3>Windows</h3>
+<pre><code class="hljs language-js"><span class="hljs-keyword">if</span> (<span class="hljs-title function_">platform</span>() === <span class="hljs-string">&quot;win32&quot;</span>) {
+  <span class="hljs-title function_">exec</span>(<span class="hljs-string">`
+    start cmd.exe /k &quot;timeout 10 &amp;&amp; move <span class="hljs-subst">${exeFilePath}</span>.latest <span class="hljs-subst">${exeFilePath}</span> &amp;&amp; <span class="hljs-subst">${exeFilePath}</span>&quot;
+  `</span>.<span class="hljs-title function_">trim</span>());
+}
+</code></pre><p>In these scripts, the <code>exec</code> function is used to execute system commands to complete the file move and permission settings, then restart the application.</p>
+</body>
 </html>
           
