@@ -1,0 +1,258 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./github.min.css">
+<title>Enhanced WebView Fetch Implementation for Android Applications</title>
+</head>
+<body><h1>Enhanced WebView Fetch Implementation for Android Applications</h1>
+<p>Sometimes I want to write a small Android app, and I hope to use my most familiar front-end technology along with a WebView. However, the standard WebView comes with inherent limitations when executing network requests:</p>
+<ol>
+<li>Same-Origin Policy.</li>
+<li>Restrictions on HTTP requests within an HTTPS context.</li>
+<li>Inability to set arbitrary headers(eg, refrerer).</li>
+</ol>
+<p>To transcend these limitations, we can employ a JavaScript bridge, or JSBridge, to facilitate an unrestricted fetch operation.</p>
+<pre><code class="hljs language-kotlin"><span class="hljs-meta">@JavascriptInterface</span>
+<span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">fetch</span><span class="hljs-params">(url: <span class="hljs-type">String</span>, method: <span class="hljs-type">String</span>, headers: <span class="hljs-type">String</span>, <span class="hljs-keyword">data</span>: <span class="hljs-type">String</span>, id: <span class="hljs-type">String</span>)</span></span> {
+  <span class="hljs-keyword">val</span> dataJsonArray: JSONArray = JSONArray(<span class="hljs-keyword">data</span>)
+  <span class="hljs-keyword">val</span> headersObj = JSONObject(headers)
+  doFetch(url, method, headersObj, dataJsonArray, <span class="hljs-number">0</span>, id)
+}
+
+<span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">doFetch</span><span class="hljs-params">(
+    url: <span class="hljs-type">String</span>,
+    method: <span class="hljs-type">String</span>,
+    headers: <span class="hljs-type">JSONObject</span>,
+    <span class="hljs-keyword">data</span>: <span class="hljs-type">JSONArray</span>,
+    redirectCount: <span class="hljs-type">Int</span>,
+    id: <span class="hljs-type">String</span>,
+)</span></span> {
+
+    <span class="hljs-keyword">val</span> mainHandler = Handler(Looper.getMainLooper())
+    <span class="hljs-keyword">var</span> connection: HttpURLConnection
+    <span class="hljs-keyword">val</span> networkTask = Runnable {
+        <span class="hljs-keyword">try</span> {
+            <span class="hljs-keyword">val</span> url = URL(url)
+            connection = url.openConnection() <span class="hljs-keyword">as</span> HttpURLConnection
+            connection.requestMethod = method
+            setRequestHeaders(connection, headers)
+            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">data</span>.length() &gt; <span class="hljs-number">0</span>) {
+                setRequestBody(connection, <span class="hljs-keyword">data</span>)
+            }
+            connection.connect()
+            <span class="hljs-keyword">val</span> status = connection.responseCode
+            <span class="hljs-keyword">val</span> statusText = connection.responseMessage
+            <span class="hljs-keyword">val</span> headerFields = connection.headerFields
+            <span class="hljs-keyword">if</span> (status == HttpURLConnection.HTTP_MOVED_PERM || status == HttpURLConnection.HTTP_MOVED_TEMP) {
+                connection.disconnect()
+                <span class="hljs-keyword">val</span> redirectUrl = lowercaseMap(headerFields)[<span class="hljs-string">&quot;location&quot;</span>]?.<span class="hljs-keyword">get</span>(<span class="hljs-number">0</span>)
+                <span class="hljs-keyword">if</span> (redirectUrl != <span class="hljs-literal">null</span>) {
+                    doFetch(redirectUrl, method, headers, <span class="hljs-keyword">data</span>, redirectCount + <span class="hljs-number">1</span>, id)
+                }
+                <span class="hljs-keyword">return</span><span class="hljs-symbol">@Runnable</span>
+            }
+            <span class="hljs-keyword">if</span> (status == HttpURLConnection.HTTP_OK) {
+                mainHandler.post(Runnable {
+                    webView.evaluateJavascript(
+                        <span class="hljs-string">&quot;requestResolve(<span class="hljs-variable">$id</span>, <span class="hljs-variable">$status</span>, &#x27;<span class="hljs-variable">$statusText</span>&#x27;, <span class="hljs-subst">${
+                            headersToJSONObject(
+                                headerFields
+                            )
+                        }</span>)&quot;</span>
+                    ) {}
+                })
+            }
+        } <span class="hljs-keyword">catch</span> (e: IOException) {
+            e.printStackTrace()
+            webView.evaluateJavascript(<span class="hljs-string">&quot;requestFail(<span class="hljs-variable">$id</span>)&quot;</span>) {}
+            <span class="hljs-keyword">return</span><span class="hljs-symbol">@Runnable</span>
+        }
+
+        <span class="hljs-keyword">var</span> nRead: <span class="hljs-built_in">Int</span>
+        <span class="hljs-keyword">val</span> <span class="hljs-keyword">data</span> = ByteArray(<span class="hljs-number">1024</span>)
+
+        <span class="hljs-keyword">try</span> {
+            <span class="hljs-keyword">while</span> ((connection.inputStream.read(<span class="hljs-keyword">data</span>, <span class="hljs-number">0</span>, <span class="hljs-keyword">data</span>.size)
+                    .also { nRead = it }) != -<span class="hljs-number">1</span>
+            ) {
+                <span class="hljs-keyword">val</span> slicedArray = ByteArray(nRead)
+                System.arraycopy(<span class="hljs-keyword">data</span>, <span class="hljs-number">0</span>, slicedArray, <span class="hljs-number">0</span>, nRead)
+                mainHandler.post(Runnable {
+                    webView.evaluateJavascript(
+                        <span class="hljs-string">&quot;streamPush(<span class="hljs-variable">$id</span>, <span class="hljs-subst">${
+                            byteArrayToJSONArray(
+                                slicedArray
+                            )
+                        }</span>)&quot;</span>
+                    ) {}
+                })
+            }
+
+            Log.i(<span class="hljs-string">&quot;Test&quot;</span>, nRead.toString())
+            mainHandler.post(Runnable {
+                webView.evaluateJavascript(<span class="hljs-string">&quot;streamSucceed(<span class="hljs-variable">$id</span>)&quot;</span>) {}
+            })
+        } <span class="hljs-keyword">catch</span> (e: IOException) {
+
+            mainHandler.post(Runnable {
+                webView.evaluateJavascript(<span class="hljs-string">&quot;streamError(<span class="hljs-variable">$id</span>)&quot;</span>) {}
+            })
+
+        }
+    }
+    Thread(networkTask).start()
+}
+
+<span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">stringListToJSONArray</span><span class="hljs-params">(stringList: <span class="hljs-type">List</span>&lt;<span class="hljs-type">String</span>&gt;)</span></span>: JSONArray {
+  <span class="hljs-keyword">val</span> jsonArray = JSONArray()
+  <span class="hljs-keyword">for</span> (item <span class="hljs-keyword">in</span> stringList) {
+      jsonArray.put(item)
+  }
+  <span class="hljs-keyword">return</span> jsonArray
+}
+
+<span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">lowercaseMap</span><span class="hljs-params">(headers: <span class="hljs-type">Map</span>&lt;<span class="hljs-type">String</span>, List&lt;String&gt;&gt;)</span></span>: Map&lt;String, List&lt;String&gt;&gt; {
+  <span class="hljs-keyword">val</span> caseInsensitiveHeaders: MutableMap&lt;String, List&lt;String&gt;&gt; =
+      TreeMap(java.lang.String.CASE_INSENSITIVE_ORDER)
+  <span class="hljs-keyword">for</span> ((key, value) <span class="hljs-keyword">in</span> headers) {
+      <span class="hljs-keyword">var</span> keyLowerCase = key
+      <span class="hljs-keyword">if</span> (key != <span class="hljs-literal">null</span>) {
+          keyLowerCase = key.lowercase()
+          caseInsensitiveHeaders[keyLowerCase] = value
+      }
+  }
+  <span class="hljs-keyword">return</span> caseInsensitiveHeaders
+}
+
+<span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">headersToJSONObject</span><span class="hljs-params">(headers: <span class="hljs-type">Map</span>&lt;<span class="hljs-type">String</span>, List&lt;String&gt;&gt;)</span></span>: JSONObject {
+  <span class="hljs-keyword">val</span> headersJson = JSONObject()
+  <span class="hljs-keyword">for</span> ((key, value) <span class="hljs-keyword">in</span> headers) {
+      <span class="hljs-keyword">if</span> (key != <span class="hljs-literal">null</span>) {
+          headersJson.put(key, stringListToJSONArray(value))
+      }
+  }
+  <span class="hljs-keyword">return</span> headersJson
+}
+
+<span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">byteArrayToJSONArray</span><span class="hljs-params">(byteArray: <span class="hljs-type">ByteArray</span>)</span></span>: JSONArray {
+  <span class="hljs-keyword">val</span> jsonArray = JSONArray()
+  <span class="hljs-keyword">for</span> (b <span class="hljs-keyword">in</span> byteArray) {
+      jsonArray.put(b.toInt() and <span class="hljs-number">0xFF</span>)
+  }
+  <span class="hljs-keyword">return</span> jsonArray
+}
+
+
+<span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">setRequestHeaders</span><span class="hljs-params">(conn: <span class="hljs-type">HttpURLConnection</span>, headers: <span class="hljs-type">JSONObject</span>)</span></span> {
+  <span class="hljs-keyword">val</span> keys: Iterator&lt;String&gt; = headers.keys()
+
+  <span class="hljs-keyword">while</span> (keys.hasNext()) {
+      <span class="hljs-keyword">val</span> key = keys.next()
+      <span class="hljs-keyword">val</span> value: String = headers.optString(key)
+      conn.setRequestProperty(key, value)
+  }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">fun</span> <span class="hljs-title">setRequestBody</span><span class="hljs-params">(conn: <span class="hljs-type">HttpURLConnection</span>, <span class="hljs-keyword">data</span>: <span class="hljs-type">JSONArray</span>)</span></span> {
+  Log.i(<span class="hljs-string">&quot;datalengt&quot;</span>, <span class="hljs-keyword">data</span>.length().toString())
+  <span class="hljs-keyword">val</span> buffer = ByteBuffer.allocate(<span class="hljs-keyword">data</span>.length())
+  <span class="hljs-keyword">for</span> (i <span class="hljs-keyword">in</span> <span class="hljs-number">0</span> until <span class="hljs-keyword">data</span>.length()) {
+      <span class="hljs-keyword">val</span> num = <span class="hljs-keyword">data</span>.getInt(i)
+      buffer.put(num.toByte())
+  }
+  <span class="hljs-keyword">val</span> os = conn.outputStream
+  os.write(buffer.array())
+  os.flush()
+}
+</code></pre><pre><code class="hljs language-ts"><span class="hljs-keyword">let</span> count = <span class="hljs-number">0</span>
+<span class="hljs-keyword">const</span> <span class="hljs-attr">map</span>: <span class="hljs-built_in">any</span> = {}
+
+<span class="hljs-keyword">interface</span> <span class="hljs-title class_">Window</span> {
+  <span class="hljs-attr">bridge</span>: {
+    <span class="hljs-attr">showToast</span>: <span class="hljs-function">(<span class="hljs-params">s: <span class="hljs-built_in">string</span></span>) =&gt;</span> <span class="hljs-built_in">void</span>
+    <span class="hljs-attr">fetch</span>: <span class="hljs-function">(<span class="hljs-params">url: <span class="hljs-built_in">string</span>, method: <span class="hljs-built_in">string</span>, headers: <span class="hljs-built_in">string</span>, body: <span class="hljs-built_in">string</span>, stamp: <span class="hljs-built_in">string</span></span>) =&gt;</span> <span class="hljs-built_in">void</span>
+  }
+  <span class="hljs-attr">freeFetch</span>: <span class="hljs-keyword">typeof</span> fetch
+  <span class="hljs-attr">requestResolve</span>: <span class="hljs-function">(<span class="hljs-params">stamp: <span class="hljs-built_in">string</span>, status: <span class="hljs-built_in">number</span>, statusText: <span class="hljs-built_in">string</span>, headers: Record&lt;<span class="hljs-built_in">string</span>, <span class="hljs-built_in">string</span>&gt;</span>) =&gt;</span> <span class="hljs-built_in">void</span>
+  <span class="hljs-attr">requestFail</span>: <span class="hljs-function">(<span class="hljs-params">stamp: <span class="hljs-built_in">string</span>, error?: <span class="hljs-built_in">string</span></span>) =&gt;</span> <span class="hljs-built_in">void</span>
+  <span class="hljs-attr">streamPush</span>: <span class="hljs-function">(<span class="hljs-params">stamp: <span class="hljs-built_in">string</span>, line: <span class="hljs-built_in">number</span>[]</span>) =&gt;</span> <span class="hljs-built_in">void</span>
+  <span class="hljs-attr">streamSucceed</span>: <span class="hljs-function">(<span class="hljs-params">stamp: <span class="hljs-built_in">string</span></span>) =&gt;</span> <span class="hljs-built_in">void</span>
+  <span class="hljs-attr">streamError</span>: <span class="hljs-function">(<span class="hljs-params">stamp: <span class="hljs-built_in">string</span>, error?: <span class="hljs-built_in">string</span></span>) =&gt;</span> <span class="hljs-built_in">void</span>
+}
+<span class="hljs-variable language_">window</span>.<span class="hljs-property">freeFetch</span> = <span class="hljs-keyword">async</span> (input, init) =&gt; {
+  <span class="hljs-keyword">const</span> id = (count++).<span class="hljs-title function_">toString</span>()
+  map[id] = {}
+  <span class="hljs-keyword">const</span> p = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Promise</span>&lt;<span class="hljs-title class_">Response</span>&gt;(<span class="hljs-function">(<span class="hljs-params">res, rej</span>) =&gt;</span> {
+    map[id].<span class="hljs-property">res</span> = res
+    map[id].<span class="hljs-property">rej</span> = rej
+  })
+
+  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(init)
+  <span class="hljs-keyword">const</span> request = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Request</span>(input, {
+    <span class="hljs-attr">method</span>: init?.<span class="hljs-property">method</span>,
+    <span class="hljs-attr">headers</span>: init?.<span class="hljs-property">headers</span>,
+    <span class="hljs-attr">body</span>: init?.<span class="hljs-property">body</span>
+  })
+  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(request)
+  <span class="hljs-keyword">let</span> headers = {
+    ...<span class="hljs-title class_">Object</span>.<span class="hljs-title function_">fromEntries</span>([...request.<span class="hljs-property">headers</span>, ...(
+      <span class="hljs-title class_">Array</span>.<span class="hljs-title function_">isArray</span>(init?.<span class="hljs-property">headers</span>) || init?.<span class="hljs-property">headers</span> <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">Headers</span>
+        ? init?.<span class="hljs-property">headers</span>
+        : <span class="hljs-title class_">Object</span>.<span class="hljs-title function_">entries</span>(init?.<span class="hljs-property">headers</span> ?? {}))]),
+  }
+  <span class="hljs-keyword">let</span> body = <span class="hljs-string">&quot;[]&quot;</span>
+
+  <span class="hljs-keyword">const</span> buffer = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Uint8Array</span>(<span class="hljs-keyword">await</span> request.<span class="hljs-title function_">arrayBuffer</span>())
+  body = <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>(<span class="hljs-title class_">Array</span>.<span class="hljs-title function_">from</span>(buffer))
+
+  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(headers)
+  <span class="hljs-variable language_">window</span>.<span class="hljs-property">bridge</span>.<span class="hljs-title function_">fetch</span>(request.<span class="hljs-property">url</span>, request.<span class="hljs-property">method</span>, <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>(headers), body, id)
+  <span class="hljs-keyword">return</span> p
+}
+<span class="hljs-variable language_">window</span>.<span class="hljs-property">requestResolve</span> = <span class="hljs-function">(<span class="hljs-params">id, status, statusText, headersObj</span>) =&gt;</span> {
+  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;requestResolve&#x27;</span>, id, status, statusText, headersObj)
+  <span class="hljs-keyword">const</span> headers = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Headers</span>(headersObj)
+  <span class="hljs-keyword">let</span> stream = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ReadableStream</span>({
+    <span class="hljs-title function_">start</span>(<span class="hljs-params">controller</span>) {
+      map[id].<span class="hljs-property">controller</span> = controller
+    },
+  })
+  <span class="hljs-keyword">if</span> (headers.<span class="hljs-title function_">get</span>(<span class="hljs-string">&#x27;content-encoding&#x27;</span>) === <span class="hljs-string">&#x27;gzip&#x27;</span>) {
+    stream = stream.<span class="hljs-title function_">pipeThrough</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">DecompressionStream</span>(<span class="hljs-string">&#x27;gzip&#x27;</span>))
+  }
+  <span class="hljs-keyword">const</span> ret = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Response</span>(stream, {
+    status,
+    headers,
+    statusText,
+  })
+  map[id].<span class="hljs-title function_">res</span>(ret)
+}
+<span class="hljs-variable language_">window</span>.<span class="hljs-property">requestFail</span> = <span class="hljs-function">(<span class="hljs-params">id, e</span>) =&gt;</span> {
+  map[id].<span class="hljs-title function_">rej</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Error</span>(e))
+  map[id] = <span class="hljs-literal">undefined</span>
+}
+<span class="hljs-variable language_">window</span>.<span class="hljs-property">streamPush</span> = <span class="hljs-function">(<span class="hljs-params">id, line</span>) =&gt;</span> {
+  <span class="hljs-keyword">const</span> controller = map[id].<span class="hljs-property">controller</span>
+  <span class="hljs-keyword">const</span> arr = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Uint8Array</span>((line))
+  controller.<span class="hljs-title function_">enqueue</span>(arr)
+}
+<span class="hljs-variable language_">window</span>.<span class="hljs-property">streamSucceed</span> = <span class="hljs-function">(<span class="hljs-params">id</span>) =&gt;</span> {
+  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;streamSucceed&#x27;</span>, id)
+  <span class="hljs-keyword">const</span> controller = map[id].<span class="hljs-property">controller</span>
+  controller.<span class="hljs-title function_">close</span>()
+  map[id] = <span class="hljs-literal">undefined</span>
+}
+
+<span class="hljs-variable language_">window</span>.<span class="hljs-property">streamError</span> = <span class="hljs-function">(<span class="hljs-params">id, e</span>) =&gt;</span> {
+  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;streamError&#x27;</span>, id)
+  <span class="hljs-keyword">const</span> controller = map[id].<span class="hljs-property">controller</span>
+  controller.<span class="hljs-title function_">error</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Error</span>(e || <span class="hljs-string">&quot;StreamError&quot;</span>))
+  map[id] = <span class="hljs-literal">undefined</span>
+}
+</code></pre></body>
+</html>
+          
