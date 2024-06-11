@@ -29,8 +29,8 @@
 </code></pre><h2>Write to a New File</h2>
 <p>After downloading, write the new version to a new file:</p>
 <pre><code class="hljs language-js">fs.<span class="hljs-title function_">writeFileSync</span>(exeFilePath + <span class="hljs-string">&quot;.latest&quot;</span>, buffer);
-</code></pre><h2>In the Windows operating system, writing files directly may result in errors(<code>Error: EBUSY: resource busy or locked</code>). So write to a new file <code>.latest</code>.
-Upgrade and Reload the Application</h2>
+</code></pre><p>In the Windows operating system, writing files directly may result in errors(<code>Error: EBUSY: resource busy or locked</code>). So write to a new file <code>.latest</code>.</p>
+<h2>Upgrade and Reload the Application</h2>
 <p>Execute different upgrade and restart commands based on the operating system. Here are example scripts for MacOS and Windows:</p>
 <h3>MacOS</h3>
 <pre><code class="hljs language-js"><span class="hljs-keyword">if</span> (<span class="hljs-title function_">platform</span>() === <span class="hljs-string">&quot;darwin&quot;</span>) {
