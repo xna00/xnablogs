@@ -6,3 +6,9 @@
 code {
   font-family: Menlo;
 }
+
+.date {
+  color: #888;
+  font-size: 0.8em;
+  margin-left: 10px;
+}
