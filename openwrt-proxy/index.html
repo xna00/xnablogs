@@ -1,0 +1,162 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../github.min.css">
+<title>OpenWrt 代理记录</title>
+</head>
+<body><h1>OpenWrt 代理记录</h1>
+<p>整体方案：通过域名白名单分流，代理特定IP地址。</p>
+<ol>
+<li>向网关DNS server查询，如果命中白名单，转发到Clash DNS server</li>
+<li>Clash返回fake-ip (198.18.0.1/16)</li>
+<li>nftables 判断 daddr 如果是 fake-ip，转发到Clash代理</li>
+</ol>
+<h2>配置 DNS</h2>
+<h2>配置 Clash</h2>
+<p><a href="https://github.com/doreamon-design/clash/releases/">下载地址</a></p>
+<p>参考<a href="http://doreamon-design.github.io/clash/">配置</a>，
+在 .config/clash 中创建配置文件后运行即可</p>
+<p>作为 Service <code>/etc/init.d/clashd</code></p>
+<pre><code class="hljs language-sh"><span class="hljs-meta">#!/bin/sh /etc/rc.common</span>
+ 
+USE_PROCD=1
+ 
+START=199
+STOP=01
+ 
+<span class="hljs-function"><span class="hljs-title">start_service</span></span>() {
+  procd_open_instance
+  procd_set_param <span class="hljs-built_in">command</span> /root/start_proxy.sh
+  procd_set_param stdout 1
+  procd_set_param stderr 1
+  procd_close_instance
+  
+}
+
+<span class="hljs-function"><span class="hljs-title">stop_service</span></span>() {
+  killall /root/clash
+  nft delete table clash_proxy
+  ip rule del fwmark 666 lookup 666
+  ip route del <span class="hljs-built_in">local</span> 0.0.0.0/0 dev lo table 666
+  <span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;clash stopped&quot;</span>
+}
+
+<span class="hljs-function"><span class="hljs-title">reload_service</span></span>() {
+  stop_service
+  start_service
+}
+</code></pre><p><code>/root/start_proxy.sh</code></p>
+<pre><code class="hljs language-sh"><span class="hljs-meta">#!/bin/sh</span>
+
+<span class="hljs-comment"># 等待一段时间，否则会报错 bind error cannot assign requested address，原因未知</span>
+<span class="hljs-built_in">sleep</span> 120
+
+ip rule add fwmark 666 lookup 666
+ip route add <span class="hljs-built_in">local</span> 0.0.0.0/0 dev lo table 666
+ip route list
+ip rule list
+
+/root/proxy.nft
+
+/root/clash -d /etc/clash
+
+</code></pre><h2>使用 iptables</h2>
+<p>OpenWrt 可能没有 iptables，需要安装</p>
+<pre><code class="hljs language-bash">opkg update
+opkg install iptables
+opkg install iptables-mod-tproxy <span class="hljs-comment">#(kmod-ipt-tproxy)</span>
+</code></pre><pre><code class="hljs language-sh">ip rule add fwmark 666 lookup 666
+ip route add <span class="hljs-built_in">local</span> 0.0.0.0/0 dev lo table 666
+
+ip route list
+ip rule list
+
+<span class="hljs-comment"># clash 链负责处理转发流量</span>
+iptables -t mangle -N clash
+
+<span class="hljs-comment"># 让所有流量通过 clash 链进行处理</span>
+iptables -t mangle -A PREROUTING -j clash
+
+<span class="hljs-comment"># 目标地址为局域网或保留地址的流量跳过处理</span>
+iptables -t mangle -A clash -d 0.0.0.0/8 -j RETURN
+iptables -t mangle -A clash -d 127.0.0.0/8 -j RETURN
+iptables -t mangle -A clash -d 10.0.0.0/8 -j RETURN
+iptables -t mangle -A clash -d 172.16.0.0/12 -j RETURN
+iptables -t mangle -A clash -d 192.168.0.0/16 -j RETURN
+iptables -t mangle -A clash -d 169.254.0.0/16 -j RETURN
+iptables -t mangle -A clash -d 224.0.0.0/4 -j RETURN
+iptables -t mangle -A clash -d 240.0.0.0/4 -j RETURN
+
+ip tables -t mangle -A clash -d
+
+<span class="hljs-comment"># tproxy 7890（clash） 端口，并打上 mark 666 命中策略，走 666 路由表</span>
+iptables -t mangle -A clash -s 192.168.2.143,192.168.2.194 -p tcp -j TPROXY --on-port 7893 --tproxy-mark 666
+iptables -t mangle -A clash -s 192.168.2.143,192.168.2.194 -p udp -j TPROXY --on-port 7893 --tproxy-mark 666
+
+<span class="hljs-comment"># 转发所有 DNS 查询到 1053 端口</span>
+<span class="hljs-comment"># 此操作会导致所有 DNS 请求全部返回虚假 IP(fake ip 198.18.0.1/16)</span>
+iptables -t nat -I PREROUTING -s 192.168.2.143 -p udp --dport 53 -j REDIRECT --to 1053
+
+<span class="hljs-built_in">echo</span> <span class="hljs-string">&quot;iptables 规则已设置完成&quot;</span>
+</code></pre><h2>使用 nftables</h2>
+<p>理论上配置更简单，但是需要学习。后续通过这个支持ipv6。</p>
+<p>安装依赖内核模块 <code>nft-tproxy</code> <code>nft-socket</code></p>
+<pre><code class="hljs language-nft">#!/usr/sbin/nft -f
+
+define MARK_PROXY = 666;
+define EXCLUDES_PROXY_V4 = {
+  0.0.0.0/8, 127.0.0.0/8, 10.0.0.0/8,
+  172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16,
+  224.0.0.0/4, 240.0.0.0/4
+};
+define EXCLUDES_LOOP_V4 = { 255.255.255.255/32 };
+define EXCLUDES_PROXY_V6 = { ::1 };
+define EXCLUDES_LOOP_V6 = { :: };
+define SOURCE_IP = {
+  192.168.2.143, 192.168.2.194
+}
+define DESTINATION_IP = {
+  198.18.0.0/16
+}
+define PROXY_PORT = 7893;
+
+table ip clash_proxy {
+
+  chain clash_dns {
+    type nat hook prerouting priority dstnat; policy accept;
+    #ip saddr $SOURCE_IP udp dport 53 redirect to :1053
+  }
+
+  chain clash_lan {
+    type filter hook prerouting priority mangle;
+    ip daddr $EXCLUDES_PROXY_V4 return
+    ip daddr $DESTINATION_IP ip protocol { tcp, udp } tproxy to :7893 mark set $MARK_PROXY
+  }
+}
+</code></pre><h2>注意事项</h2>
+<ol>
+<li>clash 要设置专用的 tproxy port，mixed-port 不适用于 tproxy</li>
+</ol>
+<h2>参考资料</h2>
+<p><a href="https://doreamon-design.github.io/clash/configuration/configuration-reference.html">https://doreamon-design.github.io/clash/configuration/configuration-reference.html</a></p>
+<p><a href="https://blog.zonowry.com/posts/clash_iptables_tproxy/">https://blog.zonowry.com/posts/clash_iptables_tproxy/</a></p>
+<p><a href="https://hev.cc/posts/2021/transparent-proxy-with-nftables/">https://hev.cc/posts/2021/transparent-proxy-with-nftables/</a></p>
+<p><a href="https://gist.github.com/NiceRath/900f115f216c942283584c41baeb209f">https://gist.github.com/NiceRath/900f115f216c942283584c41baeb209f</a></p>
+<p><a href="https://www.digitalocean.com/community/tutorials/a-deep-dive-into-iptables-and-netfilter-architecture">https://www.digitalocean.com/community/tutorials/a-deep-dive-into-iptables-and-netfilter-architecture</a></p>
+<p><a href="https://blog.cloudflare.com/conntrack-tales-one-thousand-and-one-flows/">https://blog.cloudflare.com/conntrack-tales-one-thousand-and-one-flows/</a></p>
+<p><a href="https://superuser.com/questions/1269859/linux-netfilter-how-does-connection-tracking-track-connections-changed-by-nat">https://superuser.com/questions/1269859/linux-netfilter-how-does-connection-tracking-track-connections-changed-by-nat</a></p>
+<p><a href="https://gist.github.com/nerdalert/a1687ae4da1cc44a437d">https://gist.github.com/nerdalert/a1687ae4da1cc44a437d</a></p>
+<p><a href="https://people.netfilter.org/pablo/docs/login.pdf">https://people.netfilter.org/pablo/docs/login.pdf</a></p>
+<p><a href="https://blog.leonhw.com/post/linux-how-tproxy-works/">https://blog.leonhw.com/post/linux-how-tproxy-works/</a></p>
+<p><a href="https://www.zsythink.net/archives/tag/iptables/">https://www.zsythink.net/archives/tag/iptables/</a></p>
+<p><a href="https://news.ycombinator.com/item?id=16823577">https://news.ycombinator.com/item?id=16823577</a></p>
+<p><a href="https://www.reddit.com/r/openwrt/comments/12n4p4c/iptablesnftables_on_openwrt/">https://www.reddit.com/r/openwrt/comments/12n4p4c/iptablesnftables_on_openwrt/</a></p>
+<p><a href="https://koswu.github.io/2019/08/19/tproxy-config-with-nftables/">https://koswu.github.io/2019/08/19/tproxy-config-with-nftables/</a></p>
+<p><a href="https://wiki.nftables.org/wiki-nftables/index.php/Ruleset_debug/tracing">https://wiki.nftables.org/wiki-nftables/index.php/Ruleset_debug/tracing</a></p>
+</body>
+</html>
+          

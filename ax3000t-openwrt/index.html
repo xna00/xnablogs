@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../github.min.css">
+<title>小米AX3000T 刷 OpenWrt</title>
+</head>
+<body><h1>小米AX3000T 刷 OpenWrt</h1>
+<h2>刷机</h2>
+<p>直接按照官方文档操作即可 <a href="https://openwrt.org/inbox/toh/xiaomi/ax3000t">https://openwrt.org/inbox/toh/xiaomi/ax3000t</a></p>
+<p>传文件会遇到 /usr/libexec/sftp-server: not found when using scp</p>
+<p>加 <code>-O</code> 选项，参考 <a href="https://forum.openwrt.org/t/ash-usr-libexec-sftp-server-not-found-when-using-scp/125772">https://forum.openwrt.org/t/ash-usr-libexec-sftp-server-not-found-when-using-scp/125772</a> 解决</p>
+<h2>配置网络</h2>
+<h3>无线桥接</h3>
+<p>设置 lan interface 的 IP ，不要和主WIFI在同一子网中
+在 Network -&gt; Wireless 中扫描添加，注意 <code>firewall zone</code> 的选项不能删除
+添加 wwlan6 interface 设置 IPv6，lan 能自动获取到 IPv6</p>
+<p>无线中继是在同一网段，似乎要装 relay 插件，有点麻烦</p>
+<h3>有线连接无线交换机</h3>
+<p>设置好 lan 静态 IP，关闭 dhcp，设置 lan6 dncpv6 client</p>
+<p>参考 <a href="https://forum.turris.cz/t/using-static-local-ipv4-how-to-get-a-public-ipv6-address-too/20366/5">https://forum.turris.cz/t/using-static-local-ipv4-how-to-get-a-public-ipv6-address-too/20366/5</a></p>
+<h3>二级路由</h3>
+<h4>SLAAC</h4>
+<p>配置静态 lan ip</p>
+<p>wan6 获取到 IPv6 后，lan 关闭 dhcpv6，开启 slaac</p>
+<p>等待一段时间</p>
+<p>参考 <a href="https://chenhe.me/post/openwrt-config-ipv6-public-access">https://chenhe.me/post/openwrt-config-ipv6-public-access</a></p>
+<h4>Relay</h4>
+<p>参考 <a href="https://www.lategege.com/?p=676">https://www.lategege.com/?p=676</a></p>
+<h3>信号弱</h3>
+<p>设置 Operating frequency mode 为 AX</p>
+<p>调整 Country Code、Maximum transmit power、Operating frequency</p>
+<p>开启 WIFI 漫游（Roaming）</p>
+<h2>定时任务</h2>
+<p>直接用 <code>crontab -e</code>，在配置页中也能看到</p>
+<h2>参考资料</h2>
+<p><a href="https://github.com/hanwckf/bl-mt798x">https://github.com/hanwckf/bl-mt798x</a></p>
+<p><a href="https://cmi.hanwckf.top/p/mt798x-uboot-usage/">https://cmi.hanwckf.top/p/mt798x-uboot-usage/</a></p>
+<p><a href="https://www.youngwen.com/post/37#BFrVba">https://www.youngwen.com/post/37#BFrVba</a></p>
+<p><a href="https://miwifi.dev/ssh">https://miwifi.dev/ssh</a></p>
+</body>
+</html>
+          

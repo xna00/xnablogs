@@ -1,0 +1,85 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../github.min.css">
+<title>为 OpenWrt 编译 txiki.js</title>
+</head>
+<body><h1>为 OpenWrt 编译 txiki.js</h1>
+<h2>准备编译环境</h2>
+<h3>启动 Ubuntu</h3>
+<p><code>docker run -it ubuntu bash</code></p>
+<p><code>sudo apt install libcurl4-openssl-dev build-essential cmake autoconf texinfo libtool libltdl-dev </code></p>
+<h3>安装 SDK</h3>
+<p><a href="https://downloads.openwrt.org/snapshots/targets/mediatek/filogic/">File list</a></p>
+<p><code>wget -qO- https://downloads.openwrt.org/snapshots/targets/mediatek/filogic/openwrt-imagebuilder-mediatek-filogic.Linux-x86_64.tar.zst | 7z x -si -ttar -so | tar xvf -</code></p>
+<h3>安装需要的库</h3>
+<p>在 SDK 目录中</p>
+<pre><code class="hljs language-bash">./scripts/feeds update -a
+./scripts/feeds install curl
+make menuconfig <span class="hljs-comment"># 选中 libcurl</span>
+make package/curl/compile V=s
+<span class="hljs-comment">#make package/curl/install V=s</span>
+</code></pre><h2>编译</h2>
+<h3>配置交叉编译</h3>
+<p>添加 CMake 配置</p>
+<pre><code class="hljs language-cmake"><span class="hljs-comment"># the name of the target operating system</span>
+<span class="hljs-keyword">set</span>(CMAKE_SYSTEM_NAME Linux)
+
+<span class="hljs-comment"># which C and C++ compiler to use</span>
+<span class="hljs-keyword">set</span>(CMAKE_C_COMPILER /root/openwrt-sdk-mediatek-filogic_gcc-<span class="hljs-number">14.2</span>.<span class="hljs-number">0</span>_musl.Linux-x86_64/staging_dir/toolchain-aarch64_cortex-a53_gcc-<span class="hljs-number">14.2</span>.<span class="hljs-number">0</span>_musl/bin/aarch64-openwrt-linux-gcc)
+<span class="hljs-keyword">set</span>(CMAKE_CXX_COMPILER /root/openwrt-sdk-mediatek-filogic_gcc-<span class="hljs-number">14.2</span>.<span class="hljs-number">0</span>_musl.Linux-x86_64/staging_dir/toolchain-aarch64_cortex-a53_gcc-<span class="hljs-number">14.2</span>.<span class="hljs-number">0</span>_musl/bin/aarch64-openwrt-linux-g++)
+
+<span class="hljs-comment"># location of the target environment</span>
+<span class="hljs-keyword">set</span>(CMAKE_FIND_ROOT_PATH
+           <span class="hljs-string">&quot;/root/openwrt-sdk-mediatek-filogic_gcc-14.2.0_musl.Linux-x86_64/staging_dir/target-aarch64_cortex-a53_musl/usr&quot;</span>
+    <span class="hljs-string">&quot;/root/openwrt-sdk-mediatek-filogic_gcc-14.2.0_musl.Linux-x86_64/staging_dir/toolchain-aarch64_cortex-a53_gcc-14.2.0_musl&quot;</span>
+)
+
+<span class="hljs-comment"># adjust the default behavior of the FIND_XXX() commands:</span>
+<span class="hljs-comment"># search for headers and libraries in the target environment,</span>
+<span class="hljs-comment"># search for programs in the host environment</span>
+<span class="hljs-keyword">set</span>(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+<span class="hljs-keyword">set</span>(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+<span class="hljs-keyword">set</span>(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+</code></pre><p>修改 Makefile 引用配置</p>
+<pre><code class="hljs language-diff"><span class="hljs-deletion">-       cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILDTYPE) $(EXTRA_CMAKE_PARAMS)</span>
+<span class="hljs-addition">+       cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILDTYPE) -DCMAKE_TOOLCHAIN_FILE=openwrt.cmake $(EXTRA_CMAKE_PARAMS)</span>
+</code></pre><h3>解决编译错误</h3>
+<p>修改 CMakelists.txt 正确编译 libffi</p>
+<pre><code class="hljs language-diff"><span class="hljs-deletion">-        CONFIGURE_COMMAND ./autogen.sh COMMAND ./configure --enable-static=yes --disable-shared --disable-multi-os-directory</span>
+<span class="hljs-addition">+        CONFIGURE_COMMAND</span>
+<span class="hljs-addition">+               CC=/root/openwrt-sdk-mediatek-filogic_gcc-14.2.0_musl.Linux-x86_64/staging_dir/toolchain-aarch64_cortex-a53_gcc-14.2.0_musl/bin/aarch64-openwrt-linux-gcc</span>
+<span class="hljs-addition">+               AR=/root/openwrt-sdk-mediatek-filogic_gcc-14.2.0_musl.Linux-x86_64/staging_dir/toolchain-aarch64_cortex-a53_gcc-14.2.0_musl/bin/aarch64-openwrt-linux-ar</span>
+<span class="hljs-addition">+               RANLIB=/root/openwrt-sdk-mediatek-filogic_gcc-14.2.0_musl.Linux-x86_64/staging_dir/toolchain-aarch64_cortex-a53_gcc-14.2.0_musl/bin/aarch64-openwrt-linux-ranlib</span>
+<span class="hljs-addition">+               ./autogen.sh &amp;&amp; ./configure --host=aarch64-openwrt-linux-musl --enable-static=yes --disable-shared --disable-multi-os-directory</span>
+</code></pre><p>修改 deps/wasm3/CMakelists.txt</p>
+<pre><code class="hljs language-diff"><span class="hljs-deletion">-  if(BUILD_NATIVE)</span>
+<span class="hljs-deletion">-    if(APPLE AND CMAKE_C_COMPILER_ID MATCHES &quot;Clang&quot; AND CMAKE_HOST_SYSTEM_PROCESSOR MATCHES &quot;arm64&quot;)</span>
+<span class="hljs-deletion">-      set(CMAKE_C_FLAGS_RELEASE &quot;${CMAKE_C_FLAGS_RELEASE} -mcpu=native&quot;)</span>
+<span class="hljs-deletion">-    elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES &quot;x86_64&quot;)</span>
+<span class="hljs-deletion">-      set(CMAKE_C_FLAGS_RELEASE &quot;${CMAKE_C_FLAGS_RELEASE} -march=native&quot;)</span>
+<span class="hljs-deletion">-    endif()</span>
+<span class="hljs-deletion">-  endif()</span>
+<span class="hljs-addition">+  #if(BUILD_NATIVE)</span>
+<span class="hljs-addition">+  #  if(APPLE AND CMAKE_C_COMPILER_ID MATCHES &quot;Clang&quot; AND CMAKE_HOST_SYSTEM_PROCESSOR MATCHES &quot;arm64&quot;)</span>
+<span class="hljs-addition">+  #    set(CMAKE_C_FLAGS_RELEASE &quot;${CMAKE_C_FLAGS_RELEASE} -mcpu=native&quot;)</span>
+<span class="hljs-addition">+  #  elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES &quot;x86_64&quot;)</span>
+<span class="hljs-addition">+  #    set(CMAKE_C_FLAGS_RELEASE &quot;${CMAKE_C_FLAGS_RELEASE} -march=native&quot;)</span>
+<span class="hljs-addition">+  #  endif()</span>
+<span class="hljs-addition">+  #endif()</span>
+</code></pre><p>修改 CMakelists.txt 正确链接 libcurl</p>
+<pre><code class="hljs language-diff"><span class="hljs-addition">+set(SDK_PATH &quot;/root/openwrt-sdk-mediatek-filogic_gcc-14.2.0_musl.Linux-x86_64&quot;)</span>
+<span class="hljs-addition">+set(LIBS ${SDK_PATH}/staging_dir/target-aarch64_cortex-a53_musl/usr/lib)</span>
+<span class="hljs-deletion">-target_link_libraries(tjs qjs uv_a m3 sqlite3 CURL::libcurl)</span>
+<span class="hljs-addition">+</span>
+<span class="hljs-addition">+target_link_libraries(tjs qjs uv_a m3 sqlite3 ${LIBS}/libnghttp2.so ${LIBS}/libmbedtls.so ${LIBS}/libmbedx509.so ${LIBS}/libmbedcrypto.so CURL::libcurl)</span>
+</code></pre><h2>参考资料</h2>
+<p><a href="https://github.com/saghul/txiki.js">https://github.com/saghul/txiki.js</a></p>
+<p><a href="https://dvblog.soabit.com/building-custom-openwrt-packages-an-hopefully-complete-guide/">https://dvblog.soabit.com/building-custom-openwrt-packages-an-hopefully-complete-guide/</a></p>
+</body>
+</html>
+          

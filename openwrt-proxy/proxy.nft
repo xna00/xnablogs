@@ -1,0 +1,32 @@
+#!/usr/sbin/nft -f
+
+define MARK_PROXY = 666;
+define EXCLUDES_PROXY_V4 = {
+  0.0.0.0/8, 127.0.0.0/8, 10.0.0.0/8,
+  172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16,
+  224.0.0.0/4, 240.0.0.0/4
+};
+define EXCLUDES_LOOP_V4 = { 255.255.255.255/32 };
+define EXCLUDES_PROXY_V6 = { ::1 };
+define EXCLUDES_LOOP_V6 = { :: };
+define SOURCE_IP = {
+  192.168.2.143, 192.168.2.194
+}
+define DESTINATION_IP = {
+  198.18.0.0/16
+}
+define PROXY_PORT = 7893;
+
+table ip clash_proxy {
+
+  chain clash_dns {
+    type nat hook prerouting priority dstnat; policy accept;
+    #ip saddr $SOURCE_IP udp dport 53 redirect to :1053
+  }
+
+  chain clash_lan {
+    type filter hook prerouting priority mangle;
+    ip daddr $EXCLUDES_PROXY_V4 return
+    ip daddr $DESTINATION_IP ip protocol { tcp, udp } tproxy to :7893 mark set $MARK_PROXY
+  }
+}
