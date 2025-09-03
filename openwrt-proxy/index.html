@@ -16,6 +16,12 @@
 <li>nftables 判断 daddr 如果是 fake-ip，转发到Clash代理</li>
 </ol>
 <h2>配置 DNS</h2>
+<p>在 Network -&gt; DHCP and DNS -&gt; Forwards 中配置，把特定的域名转发到本地1053端口，即 Clash DNS server。
+run <code>ps | grep dnsmasq</code></p>
+<pre><code class="hljs language-sh">9823 dnsmasq   1836 S    /usr/sbin/dnsmasq -C /var/etc/dnsmasq.conf.cfg01411c -k -x /var/run/dnsmasq/dnsmasq.cfg01411c.pid
+</code></pre><p>查看<code>/var/etc/dnsmasq.conf.cfg01411c</code>发现该文件是自动生成的
+<code># auto-generated config file from /etc/config/dhcp</code>
+<code>/etc/config/dhcp</code>就对应 Forwards 中的配置。</p>
 <h2>配置 Clash</h2>
 <p><a href="https://github.com/doreamon-design/clash/releases/">下载地址</a></p>
 <p>参考<a href="http://doreamon-design.github.io/clash/">配置</a>，
