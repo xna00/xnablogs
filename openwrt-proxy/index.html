@@ -135,6 +135,7 @@ table ip clash_proxy {
   chain clash_lan {
     type filter hook prerouting priority mangle;
     ip daddr $EXCLUDES_PROXY_V4 return
+    # tproxy 要配合路由表使用，tproxy 只负责打标记，根据标记选择路由表。
     ip daddr $DESTINATION_IP ip protocol { tcp, udp } tproxy to :7893 mark set $MARK_PROXY
   }
 }
