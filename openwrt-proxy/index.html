@@ -49,7 +49,8 @@ STOP=01
   stop_service
   start_service
 }
-</code></pre><p><code>/root/start_proxy.sh</code></p>
+</code></pre><p>执行 <code>/etc/init.d/clashd enable</code>，自动在<code>/etc/rc.d</code>中创建符号链接，一个S开头，表示自动启动，一个K开头，表示关机是停止。S、K后面的数字表示优先级，即启动和停止的顺序。
+<code>/root/start_proxy.sh</code></p>
 <pre><code class="hljs language-sh"><span class="hljs-meta">#!/bin/sh</span>
 
 <span class="hljs-comment"># 等待一段时间，否则会报错 bind error cannot assign requested address，原因未知</span>
