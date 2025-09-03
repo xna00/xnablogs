@@ -20,7 +20,7 @@
 <p><a href="https://github.com/doreamon-design/clash/releases/">下载地址</a></p>
 <p>参考<a href="http://doreamon-design.github.io/clash/">配置</a>，
 在 .config/clash 中创建配置文件(<code>config.yaml</code>, <code>Country.mmdb</code>)后运行即可</p>
-<pre><code class="hljs language-yaml"><span class="hljs-attr">ixed-port:</span> <span class="hljs-number">7890</span>
+<pre><code class="hljs language-yaml"><span class="hljs-attr">mixed-port:</span> <span class="hljs-number">7890</span>
 <span class="hljs-attr">tproxy-port:</span> <span class="hljs-number">7893</span>
 <span class="hljs-attr">allow-lan:</span> <span class="hljs-literal">true</span>
 <span class="hljs-attr">bind-address:</span> <span class="hljs-string">&#x27;*&#x27;</span>
@@ -35,12 +35,11 @@
     <span class="hljs-attr">enhanced-mode:</span> <span class="hljs-string">fake-ip</span>
     <span class="hljs-attr">fake-ip-range:</span> <span class="hljs-number">198.18</span><span class="hljs-number">.0</span><span class="hljs-number">.1</span><span class="hljs-string">/16</span>
     <span class="hljs-attr">use-hosts:</span> <span class="hljs-literal">true</span>
-    <span class="hljs-attr">nameserver:</span> [<span class="hljs-string">&#x27;https://doh.pub/dns-query&#x27;</span>, <span class="hljs-string">&#x27;https://dns.alidns.com/dns-query&#x27;</span>
-    <span class="hljs-attr">fallback:</span> [<span class="hljs-string">&#x27;https://doh.dns.sb/dns-query&#x27;</span>, <span class="hljs-string">&#x27;https://dns.cloudflare.com/dns-q
-    fallback-filter: { geoip: true, ipcidr: [240.0.0.0/4, 0.0.0.0/32] }
-proxies:
-    - {}
-</span>
+    <span class="hljs-attr">nameserver:</span> [<span class="hljs-string">&#x27;https://doh.pub/dns-query&#x27;</span>, <span class="hljs-string">&#x27;https://dns.alidns.com/dns-query&#x27;</span>]
+    <span class="hljs-attr">fallback:</span> [<span class="hljs-string">&#x27;https://doh.dns.sb/dns-query&#x27;</span>, <span class="hljs-string">&#x27;https://dns.cloudflare.com/dns-query&#x27;</span>, <span class="hljs-string">&#x27;https://dns.twnic.tw/dns-query&#x27;</span>, <span class="hljs-string">&#x27;tls://8.8.4.4:853&#x27;</span>]
+    <span class="hljs-attr">fallback-filter:</span> { <span class="hljs-attr">geoip:</span> <span class="hljs-literal">true</span>, <span class="hljs-attr">ipcidr:</span> [<span class="hljs-number">240.0</span><span class="hljs-number">.0</span><span class="hljs-number">.0</span><span class="hljs-string">/4</span>, <span class="hljs-number">0.0</span><span class="hljs-number">.0</span><span class="hljs-number">.0</span><span class="hljs-string">/32</span>] }
+<span class="hljs-attr">proxies:</span>
+    <span class="hljs-bullet">-</span> {}
 </code></pre><p>作为 Service <code>/etc/init.d/clashd</code></p>
 <pre><code class="hljs language-sh"><span class="hljs-meta">#!/bin/sh /etc/rc.common</span>
  
