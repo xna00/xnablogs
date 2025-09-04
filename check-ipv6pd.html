@@ -1,0 +1,19 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./github.min.css">
+<title>OpenWrt 定时检查 IPv6-PD</title>
+</head>
+<body><h1>OpenWrt 定时检查 IPv6-PD</h1>
+<pre><code class="hljs language-sh">crontab -e
+*/5 * * * * ifstatus wan6 | <span class="hljs-built_in">tr</span> -d <span class="hljs-string">&#x27;\n\t &#x27;</span> | grep <span class="hljs-string">&#x27;&quot;ipv6-prefix&quot;:\[{&#x27;</span> || ifup wan6
+</code></pre><p>每5分钟查询一次</p>
+<p>用tr删除所有空白符号</p>
+<p>如果 grep 找到了，返回值 <code>echo $?</code> 为0，代表成功，就不会再执行 <code>ifup</code></p>
+</body>
+</html>
+          
