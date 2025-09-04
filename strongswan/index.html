@@ -10,7 +10,7 @@
 </head>
 <body><h1>strongSwan 配置记录</h1>
 <p>目前家用宽带和移动网络都已经可用 IPv6 公网地址，可以搭建一个 VPN 网关，使所有手机流量经网关中转。</p>
-<p>假设 VPN 网关的 IP 为 192.168.11.120，路由器的 IP 为 192.168.1.1</p>
+<p>假设 VPN 网关的 IP 为 192.168.11.120，路由器的 IP 为 192.168.1.1。</p>
 <h2>Android builtin VPN</h2>
 <p><img src="./android-vpn.jpeg" alt="Android VPN" width="300" style="object-fit: contain; 
 /* object-position: 0 -120px; */
@@ -29,51 +29,14 @@
 <p>网关连接网关，使得两个网关及背后的设备在同一个子网中，可以直接相互访问。</p>
 <p>我的目标场景就是 Roadwarrior Clients</p>
 <h3>配置</h3>
-<pre><code class="hljs language-properties"><span class="hljs-attr">connections</span> <span class="hljs-string">{</span>
-  <span class="hljs-attr">rw</span> <span class="hljs-string">{</span>
-    <span class="hljs-attr">version</span> = <span class="hljs-string">2</span>
-<span class="hljs-comment">    # proposals=aes256-sha256-modp2048,aes256-sha1-modp1024</span>
-    <span class="hljs-attr">local</span> <span class="hljs-string">{</span>
-      <span class="hljs-attr">auth</span> = <span class="hljs-string">psk</span>
-      <span class="hljs-attr">id</span> = <span class="hljs-string">%any</span>
-    <span class="hljs-attr">}</span>
-    <span class="hljs-attr">remote</span> <span class="hljs-string">{</span>
-      <span class="hljs-attr">id</span> = <span class="hljs-string">%any</span>
-      <span class="hljs-attr">auth</span> = <span class="hljs-string">psk</span>
-    <span class="hljs-attr">}</span>
-    <span class="hljs-attr">children</span> <span class="hljs-string">{</span>
-      <span class="hljs-attr">android</span> <span class="hljs-string">{</span>
-        <span class="hljs-attr">local_ts</span> = <span class="hljs-string">0.0.0.0/0</span>
-        <span class="hljs-attr">remote_ts</span> = <span class="hljs-string">10.10.30.0/24</span>
-        <span class="hljs-attr">updown</span> = <span class="hljs-string">/usr/lib/ipsec/_updown iptables</span>
-        <span class="hljs-attr">hostaccess</span> = <span class="hljs-string">yes</span>
-        <span class="hljs-attr">mode</span> = <span class="hljs-string">tunnel</span>
-      <span class="hljs-attr">}</span>
-    <span class="hljs-attr">}</span>
-    <span class="hljs-attr">pools</span> = <span class="hljs-string">vpn-pool</span>
-  <span class="hljs-attr">}</span>
-<span class="hljs-attr">}</span>
-
-<span class="hljs-attr">pools</span> <span class="hljs-string">{</span>
-  <span class="hljs-attr">vpn-pool</span> <span class="hljs-string">{</span>
-<span class="hljs-comment">    # 分配给客户端的 IP 范围</span>
-    <span class="hljs-attr">addrs</span> = <span class="hljs-string">10.10.30.0/24</span>
-<span class="hljs-comment">    # 给客户端指定 DNS 服务器</span>
-    <span class="hljs-attr">dns</span> = <span class="hljs-string">192.168.2.1</span>
-  <span class="hljs-attr">}</span>
-<span class="hljs-attr">}</span>
-
-<span class="hljs-attr">secrets</span> <span class="hljs-string">{</span>
-<span class="hljs-comment">  # PSK 密钥</span>
-  <span class="hljs-attr">ike-android</span> <span class="hljs-string">{</span>
-    <span class="hljs-attr">secret</span> = <span class="hljs-string">share_psk  # 密钥（无特殊字符可省略引号）</span>
-  <span class="hljs-attr">}</span>
-<span class="hljs-attr">}</span>
-<span class="hljs-comment">
-# Include config snippets</span>
-<span class="hljs-attr">include</span> <span class="hljs-string">conf.d/*.conf</span>
-
-</code></pre><p>这样配置好之后，会发现无法上网，<code>ping 192.168.11.120</code>没问题，但是<code>ping 192.168.11.1</code>不行。</p>
+<p><code>sudo nvim /etc/swanctl/swanctl.conf</code></p>
+<pre><code class="hljs language-properties"><span class="hljs-attr">&lt;!--</span> <span class="hljs-string">Error including file: swanctl.conf (File not found) --&gt;</span>
+</code></pre><p><code>sudo swanctl --load-all</code></p>
+<p>这样配置好之后，手机就可以连接上了。</p>
+<p>连上之后，会发现无法上网，<code>ping 192.168.11.120</code>没问题，但是<code>ping 192.168.11.1</code>不行。</p>
+<p>在 VPN 网关上，用<code>sudo tcpdump dst port 53</code>抓包，发现转发的数据包目的地址是正确的，而源地址是虚拟 IP 10.10.30.1。这说明数据包被转发出去了，但是目标IP返回的数据包回不来，因为没有到 10.10.30.1 的路由。</p>
+<p>这时要设置 SNAT，参考 <a href="https://docs.strongswan.org/docs/latest/howtos/forwarding.html">https://docs.strongswan.org/docs/latest/howtos/forwarding.html</a></p>
+<p>至此，手机连上VPN就能正常上网了，还能直接和 192.168.11.0/24 的设备通信。</p>
 <h2>参考资料</h2>
 <p><a href="https://docs.strongswan.org/docs/latest/howtos/introduction.html">https://docs.strongswan.org/docs/latest/howtos/introduction.html</a></p>
 <p><a href="https://cshihong.github.io/2019/04/03/IPSec-VPN%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2019/04/03/IPSec-VPN%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86/</a></p>
