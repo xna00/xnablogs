@@ -10,6 +10,7 @@
 </head>
 <body><h1>strongSwan 配置记录</h1>
 <p>目前家用宽带和移动网络都已经可用 IPv6 公网地址，可以搭建一个 VPN 网关，使所有手机流量经网关中转。</p>
+<p>假设 VPN 网关的 IP 为 192.168.11.120，路由器的 IP 为 192.168.1.1</p>
 <h2>Android builtin VPN</h2>
 <p><img src="./android-vpn.jpeg" alt="Android VPN" width="300" style="object-fit: contain; 
 /* object-position: 0 -120px; */
@@ -28,8 +29,52 @@
 <p>网关连接网关，使得两个网关及背后的设备在同一个子网中，可以直接相互访问。</p>
 <p>我的目标场景就是 Roadwarrior Clients</p>
 <h3>配置</h3>
-<pre><code class="hljs language-conf">&lt;-- @include swanctl.conf --&gt;
-</code></pre><h2>参考资料</h2>
+<pre><code class="hljs language-conf">connections {
+  rw {
+    version = 2
+    # proposals=aes256-sha256-modp2048,aes256-sha1-modp1024
+    local {
+      auth = psk
+      id = %any
+    }
+    remote {
+      id = %any
+      auth = psk
+    }
+    children {
+      android {
+        local_ts = 0.0.0.0/0
+        remote_ts = 10.10.30.0/24
+        updown = /usr/lib/ipsec/_updown iptables
+        hostaccess = yes
+        mode = tunnel
+      }
+    }
+    pools = vpn-pool
+  }
+}
+
+pools {
+  vpn-pool {
+    # 分配给客户端的 IP 范围
+    addrs = 10.10.30.0/24
+    # 给客户端指定 DNS 服务器
+    dns = 192.168.2.1
+  }
+}
+
+secrets {
+  # PSK 密钥
+  ike-android {
+    secret = share_psk  # 密钥（无特殊字符可省略引号）
+  }
+}
+
+# Include config snippets
+include conf.d/*.conf
+
+</code></pre><p>这样配置好之后，会发现无法上网，`ping</p>
+<h2>参考资料</h2>
 <p><a href="https://docs.strongswan.org/docs/latest/howtos/introduction.html">https://docs.strongswan.org/docs/latest/howtos/introduction.html</a></p>
 <p><a href="https://cshihong.github.io/2019/04/03/IPSec-VPN%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2019/04/03/IPSec-VPN%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86/</a></p>
 </body>
