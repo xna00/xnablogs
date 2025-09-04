@@ -1,0 +1,37 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../github.min.css">
+<title>strongSwan 配置记录</title>
+</head>
+<body><h1>strongSwan 配置记录</h1>
+<p>目前家用宽带和移动网络都已经可用 IPv6 公网地址，可以搭建一个 VPN 网关，使所有手机流量经网关中转。</p>
+<h2>Android builtin VPN</h2>
+<p><img src="./android-vpn.jpeg" alt="Android VPN" width="300" style="object-fit: contain; 
+/* object-position: 0 -120px; */
+"></p>
+<p>IKEv2: Internet Key Exchange Version 2 密钥交换</p>
+<p>PSK: Pre Shared Key 预共享密钥</p>
+<p>IPSec 标识符: 一个 ID</p>
+<h2>strongSwan 简介</h2>
+<p>strongSwan 是一个完整的 IPsec 解决方案。
+<img src="./topology.png"></p>
+<h3>Remote Access / Roadwarrior Clients</h3>
+<p>主机连接 VPN 网关</p>
+<h3>Remote Hosts / Host-to-Host</h3>
+<p>主机连接主机</p>
+<h3>Remote Sites / Site-to-Site</h3>
+<p>网关连接网关，使得两个网关及背后的设备在同一个子网中，可以直接相互访问。</p>
+<p>我的目标场景就是 Roadwarrior Clients</p>
+<h3>配置</h3>
+<pre><code class="hljs language-conf">&lt;-- @include swanctl.conf --&gt;
+</code></pre><h2>参考资料</h2>
+<p><a href="https://docs.strongswan.org/docs/latest/howtos/introduction.html">https://docs.strongswan.org/docs/latest/howtos/introduction.html</a></p>
+<p><a href="https://cshihong.github.io/2019/04/03/IPSec-VPN%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2019/04/03/IPSec-VPN%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86/</a></p>
+</body>
+</html>
+          
