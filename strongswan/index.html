@@ -29,51 +29,51 @@
 <p>网关连接网关，使得两个网关及背后的设备在同一个子网中，可以直接相互访问。</p>
 <p>我的目标场景就是 Roadwarrior Clients</p>
 <h3>配置</h3>
-<pre><code class="hljs language-conf">connections {
-  rw {
-    version = 2
-    # proposals=aes256-sha256-modp2048,aes256-sha1-modp1024
-    local {
-      auth = psk
-      id = %any
-    }
-    remote {
-      id = %any
-      auth = psk
-    }
-    children {
-      android {
-        local_ts = 0.0.0.0/0
-        remote_ts = 10.10.30.0/24
-        updown = /usr/lib/ipsec/_updown iptables
-        hostaccess = yes
-        mode = tunnel
-      }
-    }
-    pools = vpn-pool
-  }
-}
+<pre><code class="hljs language-properties"><span class="hljs-attr">connections</span> <span class="hljs-string">{</span>
+  <span class="hljs-attr">rw</span> <span class="hljs-string">{</span>
+    <span class="hljs-attr">version</span> = <span class="hljs-string">2</span>
+<span class="hljs-comment">    # proposals=aes256-sha256-modp2048,aes256-sha1-modp1024</span>
+    <span class="hljs-attr">local</span> <span class="hljs-string">{</span>
+      <span class="hljs-attr">auth</span> = <span class="hljs-string">psk</span>
+      <span class="hljs-attr">id</span> = <span class="hljs-string">%any</span>
+    <span class="hljs-attr">}</span>
+    <span class="hljs-attr">remote</span> <span class="hljs-string">{</span>
+      <span class="hljs-attr">id</span> = <span class="hljs-string">%any</span>
+      <span class="hljs-attr">auth</span> = <span class="hljs-string">psk</span>
+    <span class="hljs-attr">}</span>
+    <span class="hljs-attr">children</span> <span class="hljs-string">{</span>
+      <span class="hljs-attr">android</span> <span class="hljs-string">{</span>
+        <span class="hljs-attr">local_ts</span> = <span class="hljs-string">0.0.0.0/0</span>
+        <span class="hljs-attr">remote_ts</span> = <span class="hljs-string">10.10.30.0/24</span>
+        <span class="hljs-attr">updown</span> = <span class="hljs-string">/usr/lib/ipsec/_updown iptables</span>
+        <span class="hljs-attr">hostaccess</span> = <span class="hljs-string">yes</span>
+        <span class="hljs-attr">mode</span> = <span class="hljs-string">tunnel</span>
+      <span class="hljs-attr">}</span>
+    <span class="hljs-attr">}</span>
+    <span class="hljs-attr">pools</span> = <span class="hljs-string">vpn-pool</span>
+  <span class="hljs-attr">}</span>
+<span class="hljs-attr">}</span>
 
-pools {
-  vpn-pool {
-    # 分配给客户端的 IP 范围
-    addrs = 10.10.30.0/24
-    # 给客户端指定 DNS 服务器
-    dns = 192.168.2.1
-  }
-}
+<span class="hljs-attr">pools</span> <span class="hljs-string">{</span>
+  <span class="hljs-attr">vpn-pool</span> <span class="hljs-string">{</span>
+<span class="hljs-comment">    # 分配给客户端的 IP 范围</span>
+    <span class="hljs-attr">addrs</span> = <span class="hljs-string">10.10.30.0/24</span>
+<span class="hljs-comment">    # 给客户端指定 DNS 服务器</span>
+    <span class="hljs-attr">dns</span> = <span class="hljs-string">192.168.2.1</span>
+  <span class="hljs-attr">}</span>
+<span class="hljs-attr">}</span>
 
-secrets {
-  # PSK 密钥
-  ike-android {
-    secret = share_psk  # 密钥（无特殊字符可省略引号）
-  }
-}
+<span class="hljs-attr">secrets</span> <span class="hljs-string">{</span>
+<span class="hljs-comment">  # PSK 密钥</span>
+  <span class="hljs-attr">ike-android</span> <span class="hljs-string">{</span>
+    <span class="hljs-attr">secret</span> = <span class="hljs-string">share_psk  # 密钥（无特殊字符可省略引号）</span>
+  <span class="hljs-attr">}</span>
+<span class="hljs-attr">}</span>
+<span class="hljs-comment">
+# Include config snippets</span>
+<span class="hljs-attr">include</span> <span class="hljs-string">conf.d/*.conf</span>
 
-# Include config snippets
-include conf.d/*.conf
-
-</code></pre><p>这样配置好之后，会发现无法上网，`ping</p>
+</code></pre><p>这样配置好之后，会发现无法上网，<code>ping 192.168.11.120</code>没问题，但是<code>ping 192.168.11.1</code>不行。</p>
 <h2>参考资料</h2>
 <p><a href="https://docs.strongswan.org/docs/latest/howtos/introduction.html">https://docs.strongswan.org/docs/latest/howtos/introduction.html</a></p>
 <p><a href="https://cshihong.github.io/2019/04/03/IPSec-VPN%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2019/04/03/IPSec-VPN%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86/</a></p>
