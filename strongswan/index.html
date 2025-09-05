@@ -28,7 +28,10 @@
 <h3>Remote Sites / Site-to-Site</h3>
 <p>网关连接网关，使得两个网关及背后的设备在同一个子网中，可以直接相互访问。</p>
 <p>我的目标场景就是 Roadwarrior Clients</p>
-<h3>配置</h3>
+<h3>安装</h3>
+<pre><code class="hljs language-sh">sudo apt install strongswan
+sudo apt install libstrongswan-extra-plugins
+</code></pre><h3>配置</h3>
 <p><code>sudo nvim /etc/swanctl/swanctl.conf</code></p>
 <pre><code class="hljs language-properties"><span class="hljs-attr">connections</span> <span class="hljs-string">{</span>
   <span class="hljs-attr">rw</span> <span class="hljs-string">{</span>
