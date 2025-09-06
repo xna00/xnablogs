@@ -11,13 +11,13 @@
 <body><h1>提取 .docx 文件标题，设置为文件名</h1>
 <p><a href="https://github.com/xna00/AutoRename">Github repo</a></p>
 <h2>docx 文件简介</h2>
-<p>docx 文件属于 Office Open XML 文件的一种，本质上是一个压缩包，包含了一堆 xml 文件。pptx、xlsx 也属于 OOXML 。</p>
+<p>docx 文件属于 Office Open XML 文件的一种，本质上是一个压缩包，包含了一堆 XML 文件。pptx、xlsx 也属于 OOXML。</p>
 <p>可以在 <a href="https://xna00.github.io/ooxml-explorer/">OOXML Explorer</a> 中查看 OOXML 文件的内部结构。</p>
 <h2>实现思路</h2>
-<p>解压缩之后，会有 <code>word/document.xml</code> 和 <code>word/styles.xml</code>。第一个就是文档的内容，第二个是预定义的样式。文档中有内联样式，也可能设置一个<code>styleId</code>指向<code>styles.xml</code>中的样式。</p>
+<p>解压缩之后，会有 <code>word/document.xml</code> 和 <code>word/styles.xml</code>。第一个就是文档的内容，第二个是预定义的样式。文档中有内联样式，也可能设置一个 <code>styleId</code> 指向 <code>styles.xml</code> 中的样式。</p>
 <p>通过查找文档头部字号较大的内容，就能读取文档标题，用标题重命名文件即可。</p>
 <h2>适配 QuickJS</h2>
-<p>用 Node.js 打包成 exe 文件，大小估计在 30M 左右。用 QuickJS 编译成 exe，只有 1M。</p>
+<p>用 Node.js 打包成 exe 文件，大小估计在 30MB 左右。用 QuickJS 编译成 exe，只有 1MB。</p>
 <p>需要适配的主要是读写文件和解压缩相关 API。</p>
 <h3>读写文件</h3>
 <pre><code class="hljs language-ts"><span class="hljs-keyword">const</span> <span class="hljs-title function_">readFileSync</span> = (<span class="hljs-params">path: <span class="hljs-built_in">string</span></span>) =&gt; {
@@ -40,7 +40,7 @@
 
 <span class="hljs-keyword">const</span> <span class="hljs-title function_">dirname</span> = (<span class="hljs-params">path: <span class="hljs-built_in">string</span></span>) =&gt; path.<span class="hljs-title function_">split</span>(<span class="hljs-string">&quot;\\&quot;</span>).<span class="hljs-title function_">slice</span>(<span class="hljs-number">0</span>, -<span class="hljs-number">1</span>).<span class="hljs-title function_">join</span>(<span class="hljs-string">&quot;\\&quot;</span>);
 </code></pre><h3>解压缩</h3>
-<p>使用一个零依赖的极简解压缩库<code>uzip</code>。</p>
+<p>使用一个零依赖的极简解压缩库 <code>uzip</code>。</p>
 <pre><code class="hljs language-ts"><span class="hljs-keyword">const</span> files = <span class="hljs-variable constant_">UZIP</span>.<span class="hljs-title function_">parse</span>(file);
 <span class="hljs-keyword">const</span> <span class="hljs-title function_">bufferToString</span> = (<span class="hljs-params">buf: <span class="hljs-built_in">Uint8Array</span></span>) =&gt; {
   <span class="hljs-keyword">const</span> f = std.<span class="hljs-title function_">tmpfile</span>();
@@ -55,28 +55,28 @@
 </code></pre><h3>问题记录</h3>
 <p>理论上，这样适配完之后就能用了，在 Mac 上测试也确实没问题，但是在 Windows 上测试遇到很多问题。</p>
 <h4>编译 exe</h4>
-<p><code>qjsc</code>在Windows上不能像在Unix上一样，把js文件编译成c文件之后，调用gcc编译可执行文件，只能编译出包含字节码的c文件。</p>
-<p>要使用<code>mingw</code>交叉编译，或在Windows上在<code>msys2</code>环境中编译。</p>
-<p>由于依赖了POSIX threads，要附带 libpthread.dll，可以把它静态链接进去。也可以关掉 USE_WORKER 和 CONFIG_ATOMICS，就不依赖 threads 了。</p>
+<p><code>qjsc</code> 在 Windows 上不能像在 Unix 上一样，把 JS 文件编译成 C 文件之后，调用 GCC 编译可执行文件，只能编译出包含字节码的 C 文件。</p>
+<p>要使用 <code>mingw</code> 交叉编译，或在 Windows 上在 <code>msys2</code> 环境中编译。</p>
+<p>由于依赖了 POSIX threads，要附带 libpthread.dll，可以把它静态链接进去。也可以关掉 USE_WORKER 和 CONFIG_ATOMICS，就不依赖 threads 了。</p>
 <h4>中文乱码</h4>
-<p>在 Windows上，打印到控制台的中文内容会出现乱码，而把打印内容重定向到文件中就不会。因为打印是用的uft8字节序列，Windows默认用的GBK编码。执行<code>chcp 65001</code>把控制台切到UTF-8，或者调用<code>SetConsoleOutputCP(CP_UTF8)</code>。</p>
-<p>在对文件重命名时，文件路径也会出现乱码。调用 c <code>rename</code>时，底层 <code>win32</code> API 会以 ANSI 解码 uft8 字节序列。</p>
-<p>经测试<code>setlocale(LC_ALL, \&quot;.UTF8\&quot;)</code>可以解决乱码问题。</p>
+<p>在 Windows 上，打印到控制台的中文内容会出现乱码，而把打印内容重定向到文件中就不会。因为打印是用的 UTF-8 字节序列，Windows 默认用的 GBK 编码。执行 <code>chcp 65001</code> 把控制台切到 UTF-8，或者调用 <code>SetConsoleOutputCP(CP_UTF8)</code>。</p>
+<p>在对文件重命名时，文件路径也会出现乱码。调用 C <code>rename</code> 时，底层 <code>Win32</code> API 会以 ANSI 解码 UTF-8 字节序列。</p>
+<p>经测试 <code>setlocale(LC_ALL, &quot;.UTF8&quot;)</code> 可以解决乱码问题。</p>
 <h4>文件读取不完整</h4>
-<p>用<code>getByte</code>或<code>fread</code>读取文件时，总是读取一部分就结束了。因为打开文件时用错了 flag，用<code>r</code>表示以文本的形式打开，<code>0x1a</code>等于<code>crtl+z</code>，所以读取到这个字节时就提前结束了。应该使用 <code>rb</code> flag。</p>
-<h4>调用<code>std.tmpfile</code>失败</h4>
-<p>因为 msvcrt 对 <code>tmpfile</code> 的实现有问题 <a href="https://stackoverflow.com/questions/62068627/file-tmp-tmpfile-always-generates-null-pointer-in-c">参考</a>，使用 ucrt 即可。</p>
+<p>用 <code>getByte</code> 或 <code>fread</code> 读取文件时，总是读取一部分就结束了。因为打开文件时用错了 flag，用 <code>r</code> 表示以文本的形式打开，<code>0x1a</code> 等于 <code>Ctrl+Z</code>，所以读取到这个字节时就提前结束了。应该使用 <code>rb</code> flag。</p>
+<h4>调用 <code>std.tmpfile</code> 失败</h4>
+<p>因为 MSVCRT 对 <code>tmpfile</code> 的实现有问题 <a href="https://stackoverflow.com/questions/62068627/file-tmp-tmpfile-always-generates-null-pointer-in-c">参考</a>，使用 UCRT 即可。</p>
 <h2>设置注册表</h2>
-<p>按下Win + R，输入regedit打开注册表编辑器</p>
+<p>按下 Win + R，输入 regedit 打开注册表编辑器</p>
 <p>导航到以下路径：HKEY_CLASSES_ROOT\.docx</p>
-<p>查看右侧窗口的(默认)值，记下其数据（通常是Word.Document.12或类似值）</p>
-<p>导航到HKEY_CLASSES_ROOT\[上一步的值]（例如HKEY_CLASSES_ROOT\Word.document.12）
-展开该节点，依次进入shell子项</p>
-<p>在shell上右键，选择新建 -&gt; 项，命名为你想要在右键菜单中显示的文字（例如我的操作）</p>
-<p>在刚创建的项上右键，选择新建 -&gt; 项，命名为command</p>
-<p>双击command项的(默认)值，设置其数据为你要执行的命令，例如：</p>
+<p>查看右侧窗口的(默认)值，记下其数据（通常是 Word.Document.12 或类似值）</p>
+<p>导航到 HKEY_CLASSES_ROOT\[上一步的值]（例如 HKEY_CLASSES_ROOT\Word.document.12）
+展开该节点，依次进入 shell 子项</p>
+<p>在 shell 上右键，选择新建 -&gt; 项，命名为你想要在右键菜单中显示的文字（例如我的操作）</p>
+<p>在刚创建的项上右键，选择新建 -&gt; 项，命名为 command</p>
+<p>双击 command 项的(默认)值，设置其数据为你要执行的命令，例如：</p>
 <p><code>C:\Users\xxx\autorename.exe &quot;%1&quot;</code></p>
-<p>其中%1表示当前选中的 docx 文件路径</p>
+<p>其中 %1 表示当前选中的 docx 文件路径</p>
 <h2>参考资料</h2>
 <p><a href="https://stackoverflow.com/questions/62068627/file-tmp-tmpfile-always-generates-null-pointer-in-c">https://stackoverflow.com/questions/62068627/file-tmp-tmpfile-always-generates-null-pointer-in-c</a></p>
 <p><a href="https://gitforwindows.org/the-difference-between-mingw-and-msys2.html">https://gitforwindows.org/the-difference-between-mingw-and-msys2.html</a></p>
