@@ -92,11 +92,11 @@ sudo apt install libstrongswan-extra-plugins
 <p>这样配置好之后，手机就可以连接上了。</p>
 <p>连上之后，会发现无法上网，<code>ping 192.168.11.120</code>没问题，但是<code>ping 192.168.11.1</code>不行。</p>
 <p>在 VPN 网关上，用<code>sudo tcpdump dst port 53</code>抓包，发现转发的数据包目的地址是正确的，而源地址是虚拟 IP 10.10.30.1。这说明数据包被转发出去了，但是目标IP返回的数据包回不来，因为没有到 10.10.30.1 的路由。</p>
-<p>这时要设置 SNAT，参考 <a href="https://docs.strongswan.org/docs/latest/howtos/forwarding.html">https://docs.strongswan.org/docs/latest/howtos/forwarding.html</a></p>
+<p>这时要设置 SNAT，参考 <a href="https://docs.strongswan.org/docs/latest/howtos/forwarding.html">strongSwan 转发文档</a></p>
 <p>至此，手机连上VPN就能正常上网了，还能直接和 192.168.11.0/24 的设备通信。</p>
 <h2>参考资料</h2>
-<p><a href="https://docs.strongswan.org/docs/latest/howtos/introduction.html">https://docs.strongswan.org/docs/latest/howtos/introduction.html</a></p>
-<p><a href="https://cshihong.github.io/2019/04/03/IPSec-VPN%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86/">https://cshihong.github.io/2019/04/03/IPSec-VPN%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86/</a></p>
+<p><a href="https://docs.strongswan.org/docs/latest/howtos/introduction.html">strongSwan 官方文档</a></p>
+<p><a href="https://cshihong.github.io/2019/04/03/IPSec-VPN%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86/">IPSec VPN 基本原理</a></p>
 </body>
 </html>
           
