@@ -15,7 +15,11 @@
 <li>Clash返回fake-ip (198.18.0.1/16)</li>
 <li>nftables 判断 daddr 如果是 fake-ip，转发到Clash代理</li>
 </ol>
-<h2>配置 DNS</h2>
+<h2>更新：使用 mihomo 替代 Clash</h2>
+<p><a href="https://github.com/MetaCubeX/mihomo/releases">下载地址</a></p>
+<p>配置文件</p>
+<pre><code class="hljs language-yaml"><span class="hljs-string">&lt;--</span> <span class="hljs-string">@include</span> <span class="hljs-string">mihomo.yaml</span> <span class="hljs-string">--&gt;</span>
+</code></pre><h2>配置 DNS</h2>
 <p>在 Network -&gt; DHCP and DNS -&gt; Forwards 中配置，把特定的域名转发到本地1053端口，即 Clash DNS server。</p>
 <p>run <code>ps | grep dnsmasq</code></p>
 <pre><code class="hljs language-sh">9823 dnsmasq   1836 S    /usr/sbin/dnsmasq -C /var/etc/dnsmasq.conf.cfg01411c -k -x /var/run/dnsmasq/dnsmasq.cfg01411c.pid

@@ -1,0 +1,59 @@
+# url 里填写自己的订阅,名称不能重复
+proxy-providers:
+  provider1:
+    url: "url of your subscribe"
+    type: http
+    interval: 86400
+    health-check:
+      enable: true
+      url: "https://www.gstatic.com/generate_204"
+      interval: 300
+    override:
+      additional-prefix: "[provider1]"
+
+proxies:
+  - name: "直连"
+    type: direct
+    udp: true
+
+mixed-port: 7890
+tproxy-port: 7893
+ipv6: true
+allow-lan: true
+bind-address: "*"
+unified-delay: false
+tcp-concurrent: true
+external-controller: 127.0.0.1:9090
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  use-hosts: true
+  default-nameserver:
+    - tls://223.5.5.5
+    - tls://223.6.6.6
+    - 119.29.29.29
+  nameserver:
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+
+proxy-groups:
+  - name: 全部节点
+    type: select
+    include-all: true
+    exclude-type: direct
+  - name: 自动选择
+    type: url-test
+    include-all: true
+    exclude-type: direct
+    tolerance: 10
+
+rules:
+  - MATCH,自动选择
