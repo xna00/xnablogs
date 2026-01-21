@@ -18,7 +18,65 @@
 <h2>更新：使用 mihomo 替代 Clash</h2>
 <p><a href="https://github.com/MetaCubeX/mihomo/releases">下载地址</a></p>
 <p>配置文件</p>
-<pre><code class="hljs language-yaml"><span class="hljs-string">&lt;--</span> <span class="hljs-string">@include</span> <span class="hljs-string">mihomo.yaml</span> <span class="hljs-string">--&gt;</span>
+<pre><code class="hljs language-yaml"><span class="hljs-comment"># url 里填写自己的订阅,名称不能重复</span>
+<span class="hljs-attr">proxy-providers:</span>
+  <span class="hljs-attr">provider1:</span>
+    <span class="hljs-attr">url:</span> <span class="hljs-string">&quot;url of your subscribe&quot;</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">http</span>
+    <span class="hljs-attr">interval:</span> <span class="hljs-number">86400</span>
+    <span class="hljs-attr">health-check:</span>
+      <span class="hljs-attr">enable:</span> <span class="hljs-literal">true</span>
+      <span class="hljs-attr">url:</span> <span class="hljs-string">&quot;https://www.gstatic.com/generate_204&quot;</span>
+      <span class="hljs-attr">interval:</span> <span class="hljs-number">300</span>
+    <span class="hljs-attr">override:</span>
+      <span class="hljs-attr">additional-prefix:</span> <span class="hljs-string">&quot;[provider1]&quot;</span>
+
+<span class="hljs-attr">proxies:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">&quot;直连&quot;</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">direct</span>
+    <span class="hljs-attr">udp:</span> <span class="hljs-literal">true</span>
+
+<span class="hljs-attr">mixed-port:</span> <span class="hljs-number">7890</span>
+<span class="hljs-attr">tproxy-port:</span> <span class="hljs-number">7893</span>
+<span class="hljs-attr">ipv6:</span> <span class="hljs-literal">true</span>
+<span class="hljs-attr">allow-lan:</span> <span class="hljs-literal">true</span>
+<span class="hljs-attr">bind-address:</span> <span class="hljs-string">&quot;*&quot;</span>
+<span class="hljs-attr">unified-delay:</span> <span class="hljs-literal">false</span>
+<span class="hljs-attr">tcp-concurrent:</span> <span class="hljs-literal">true</span>
+<span class="hljs-attr">external-controller:</span> <span class="hljs-number">127.0</span><span class="hljs-number">.0</span><span class="hljs-number">.1</span><span class="hljs-string">:9090</span>
+
+<span class="hljs-attr">profile:</span>
+  <span class="hljs-attr">store-selected:</span> <span class="hljs-literal">true</span>
+  <span class="hljs-attr">store-fake-ip:</span> <span class="hljs-literal">true</span>
+
+<span class="hljs-attr">dns:</span>
+  <span class="hljs-attr">enable:</span> <span class="hljs-literal">true</span>
+  <span class="hljs-attr">listen:</span> <span class="hljs-number">0.0</span><span class="hljs-number">.0</span><span class="hljs-number">.0</span><span class="hljs-string">:1053</span>
+  <span class="hljs-attr">ipv6:</span> <span class="hljs-literal">false</span>
+  <span class="hljs-attr">enhanced-mode:</span> <span class="hljs-string">fake-ip</span>
+  <span class="hljs-attr">fake-ip-range:</span> <span class="hljs-number">198.18</span><span class="hljs-number">.0</span><span class="hljs-number">.1</span><span class="hljs-string">/16</span>
+  <span class="hljs-attr">use-hosts:</span> <span class="hljs-literal">true</span>
+  <span class="hljs-attr">default-nameserver:</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-string">tls://223.5.5.5</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-string">tls://223.6.6.6</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-number">119.29</span><span class="hljs-number">.29</span><span class="hljs-number">.29</span>
+  <span class="hljs-attr">nameserver:</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-string">https://doh.pub/dns-query</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-string">https://dns.alidns.com/dns-query</span>
+
+<span class="hljs-attr">proxy-groups:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">全部节点</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">select</span>
+    <span class="hljs-attr">include-all:</span> <span class="hljs-literal">true</span>
+    <span class="hljs-attr">exclude-type:</span> <span class="hljs-string">direct</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">自动选择</span>
+    <span class="hljs-attr">type:</span> <span class="hljs-string">url-test</span>
+    <span class="hljs-attr">include-all:</span> <span class="hljs-literal">true</span>
+    <span class="hljs-attr">exclude-type:</span> <span class="hljs-string">direct</span>
+    <span class="hljs-attr">tolerance:</span> <span class="hljs-number">10</span>
+
+<span class="hljs-attr">rules:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-string">MATCH,自动选择</span>
 </code></pre><h2>配置 DNS</h2>
 <p>在 Network -&gt; DHCP and DNS -&gt; Forwards 中配置，把特定的域名转发到本地1053端口，即 Clash DNS server。</p>
 <p>run <code>ps | grep dnsmasq</code></p>
